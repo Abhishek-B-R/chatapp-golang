@@ -13,10 +13,10 @@ const (
 )
 
 type Chat struct {
-	ChatID int `json:"chat_id"`
+	ChatID int64 `json:"chat_id"`
 	Type ChatType `json:"type"`
 	Name *string `json:"name"`
-	CreatedBy int `json:"created_by"`
+	CreatedBy int64 `json:"created_by"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -30,10 +30,10 @@ func NewPostgresChatStore(db *sql.DB) *PostgresChatStore {
 
 type ChatStore interface {
 	CreateChat(chat *Chat) (*Chat, error)
-	GetUserChats(userID int) ([]*Chat, error)
-	GetChatByID(chatID int) (*Chat, error)
+	GetUserChats(userID int64) ([]*Chat, error)
+	GetChatByID(chatID int64) (*Chat, error)
 	UpdateChat(chat *Chat) error
-	DeleteChat(chatID int) error
+	DeleteChat(chatID int64) error
 }
 
 func (pg *PostgresChatStore) CreateChat(chat *Chat) (*Chat, error) {
@@ -41,12 +41,12 @@ func (pg *PostgresChatStore) CreateChat(chat *Chat) (*Chat, error) {
 	return nil,nil
 }
 
-func (pg *PostgresChatStore) DeleteChat(chatID int) error {
+func (pg *PostgresChatStore) DeleteChat(chatID int64) error {
 	fmt.Println("Chat deleted")
 	return nil
 }
 
-func (pg *PostgresChatStore) GetChatByID(chatID int) (*Chat, error) {
+func (pg *PostgresChatStore) GetChatByID(chatID int64) (*Chat, error) {
 	fmt.Println("have to implement it still")
 	return nil, nil
 }
@@ -56,7 +56,7 @@ func (pg *PostgresChatStore) UpdateChat(chat *Chat) error {
 	return nil
 }
 
-func (pg *PostgresChatStore) GetUserChats(userID int) ([]*Chat, error) {
+func (pg *PostgresChatStore) GetUserChats(userID int64) ([]*Chat, error) {
 	fmt.Println("user chats searching")
 	return nil, nil
 }

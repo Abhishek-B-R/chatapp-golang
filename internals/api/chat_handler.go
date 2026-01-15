@@ -49,7 +49,7 @@ func (ch *ChatHandler) HandleGetUserChats(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userChats, err := ch.chatStore.GetUserChats(int(userID))
+	userChats, err := ch.chatStore.GetUserChats(userID)
 	if err != nil {
 		ch.logger.Printf("ERROR: GetUserChats: %v\n", err)
 		utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error":"internal server error"})
@@ -66,7 +66,7 @@ func (ch *ChatHandler) HandleGetChatByID(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	chat, err := ch.chatStore.GetChatByID(int(chatID))
+	chat, err := ch.chatStore.GetChatByID(chatID)
 	if err != nil {
 		ch.logger.Printf("ERROR: GetWorkoutByID: %v\n", err)
 		utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error":"internal server error"})
@@ -102,7 +102,7 @@ func (ch *ChatHandler) HandleDeleteChat(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = ch.chatStore.DeleteChat(int(chatID))
+	err = ch.chatStore.DeleteChat(chatID)
 	if err == sql.ErrNoRows {
 		ch.logger.Printf("ERROR: deleteChat: %v\n",err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"No such chat found in db"})
