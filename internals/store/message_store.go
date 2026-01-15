@@ -17,17 +17,17 @@ const (
 )
 
 type MessageStore struct {
-	MessageID int64 `json:"message_id"`
-	ChatID int64 `json:"chat_id"`
-	SenderID int64 `json:"sender_id"`
+	MessageID int `json:"message_id"`
+	ChatID int `json:"chat_id"`
+	SenderID int `json:"sender_id"`
 	Content string `json:"content"`
 	CreatedAt time.Time `json:"created_at"`
 	Attachments MessageAttachments `json:"attachments"`
 }
 
 type MessageAttachments struct {
-	ID int64 `json:"id"`
-	MessageID int64 `json:"message_id"`
+	ID int `json:"id"`
+	MessageID int `json:"message_id"`
 	Type AttachmentType `json:"type"`
 	URL string `json:"url"`
 	MetaData *string `json:"metadata"`
