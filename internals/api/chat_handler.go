@@ -42,7 +42,7 @@ func (ch *ChatHandler) HandleCreateChat(w http.ResponseWriter, r *http.Request) 
 }
 
 func (ch *ChatHandler) HandleGetUserChats(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.ReadIDParam(r)
+	userID, err := utils.ReadParam(r, "userID")
 	if err != nil {
 		ch.logger.Printf("ERROR: readIDParam in GetUserChats: %v\n",err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid user id"})
@@ -59,7 +59,7 @@ func (ch *ChatHandler) HandleGetUserChats(w http.ResponseWriter, r *http.Request
 }
 
 func (ch *ChatHandler) HandleGetChatByID(w http.ResponseWriter, r *http.Request) {
-	chatID, err := utils.ReadIDParam(r)
+	chatID, err := utils.ReadParam(r, "chatID")
 	if err != nil {
 		ch.logger.Printf("ERROR: readIDParam: %v\n", err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid chat id"})
@@ -95,7 +95,7 @@ func (ch *ChatHandler) HandleUpdateChat(w http.ResponseWriter, r *http.Request) 
 }
 
 func (ch *ChatHandler) HandleDeleteChat(w http.ResponseWriter, r *http.Request) {
-	chatID, err := utils.ReadIDParam(r)
+	chatID, err := utils.ReadParam(r, "chatID")
 	if err != nil {
 		ch.logger.Printf("ERROR: readIDParam: %v", err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid chat delete id"})

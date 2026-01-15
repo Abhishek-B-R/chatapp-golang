@@ -6,15 +6,9 @@ import (
 	"time"
 )
 
-type ChatType string
-const (
-	GROUP ChatType = "group"
-	DM ChatType = "dm"
-)
-
 type Chat struct {
 	ChatID int64 `json:"chat_id"`
-	Type ChatType `json:"type"`
+	IsGroup bool `json:"is_group"`
 	Name *string `json:"name"`
 	CreatedBy int64 `json:"created_by"`
 	CreatedAt time.Time `json:"created_at"`

@@ -24,8 +24,8 @@ func WriteJSON(w http.ResponseWriter, status int, data Envelope) error {
 	return nil
 }
 
-func ReadIDParam(r *http.Request) (int64, error) {
-	idParam := chi.URLParam(r, "id")
+func ReadParam(r *http.Request, paramName string) (int64, error) {
+	idParam := chi.URLParam(r, paramName)
 	if idParam == "" {
 		return 0, errors.New("Invalid id parameter")
 	}
