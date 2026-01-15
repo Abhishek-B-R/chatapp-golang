@@ -41,6 +41,23 @@ func (ch *ChatHandler) HandleCreateChat(w http.ResponseWriter, r *http.Request) 
 	utils.WriteJSON(w, http.StatusCreated, utils.Envelope{"chat":createdChat})
 }
 
+func (ch *ChatHandler) HandleGetUserChats(w http.ResponseWriter, r *http.Request) {
+	userID, err := utils.ReadIDParam(r)
+	if err != nil {
+		ch.logger.Printf("ERROR: readIDParam in GetUserChats: %v\n",err)
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid user id"})
+		return
+	}
+
+	userChats, err := ch.chatStore.GetUserChats(int(userID))
+	if err != nil {
+		ch.logger.Printf("ERROR: GetUserChats: %v\n", err)
+		utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error":"internal server error"})
+	}
+	
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"chats":userChats})
+}
+
 func (ch *ChatHandler) HandleGetChatByID(w http.ResponseWriter, r *http.Request) {
 	chatID, err := utils.ReadIDParam(r)
 	if err != nil {
