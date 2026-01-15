@@ -5,7 +5,7 @@ import (
 )
 
 type UserStore struct {
-	UserID int `json:"user_id"`
+	UserID int64 `json:"user_id"`
 	Name string `json:"name"`
 	Email string `json:"email"`
 	AvatarURL string `json:"avatar_url"`
