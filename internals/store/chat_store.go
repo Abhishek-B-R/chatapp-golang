@@ -35,15 +35,15 @@ func NewPostgresChatStore(db *sql.DB) *PostgresChatStore {
 }
 
 type ChatStore interface {
-	CreateChat(chat *Chat) error
+	CreateChat(chat *Chat) (*Chat, error)
 	GetChatByID(chatID int) (*Chat, error)
 	UpdateChat(chat *Chat) error
 	DeleteChat(chatID int) error
 }
 
-func (pg *PostgresChatStore) CreateChat(chat *Chat) error {
+func (pg *PostgresChatStore) CreateChat(chat *Chat) (*Chat, error) {
 	fmt.Println("Chat created")
-	return nil
+	return nil,nil
 }
 
 func (pg *PostgresChatStore) DeleteChat(chatID int) error {
