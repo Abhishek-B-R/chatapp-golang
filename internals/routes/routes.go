@@ -8,6 +8,14 @@ import (
 func SetupRoutes(app *app.Application) *chi.Mux{
 	r := chi.NewRouter()
 
+	r.Post("/chat",app.ChatHandler.HandleCreateChat)
+	r.Get("/chats/{chatID}",app.ChatHandler.HandleGetChatByID)
+	r.Put("/chat",app.ChatHandler.HandleUpdateChat)
+	r.Delete("/chat/{chatID}",app.ChatHandler.HandleDeleteChat)
+	r.Get("/chats/{userID}",app.ChatHandler.HandleGetUserChats)
+
+	r.Post("/user",app.UserHandler.HandleCreateUser)
+
 	r.Get("/health",app.HealthCheck)
 	return r
 }

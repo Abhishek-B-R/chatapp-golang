@@ -7,10 +7,12 @@ import (
 )
 
 type User struct {
-	UserID int64 `json:"user_id"`
-	Name string `json:"name"`
+	ID int64 `json:"id"`
+	Username string `json:"username"`
 	Email string `json:"email"`
+	PasswordHash string `json:"password_hash"`
 	AvatarURL string `json:"avatar_url"`
+	Bio string `json:"bio"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -33,7 +35,16 @@ type UserStore interface {
 }
 
 func (pg *PostgresUserStore) CreateUser(user *User) error {
-	fmt.Println("user created")
+	query := `
+	INSERT INTO users (username, email, password_hash, avatar_url, bio)
+	VALUES ($1, $2, $3, $4, $5)
+	RETURNING id, created_at
+	`
+
+	err := pg.db.QueryRow(query, user.Username, user.Email, user.PasswordHash, user.AvatarURL, user.Bio).Scan(&user.ID, &user.CreatedAt)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

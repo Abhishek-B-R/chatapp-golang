@@ -27,6 +27,7 @@ func (uh *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		uh.logger.Printf("ERROR: decodingCreateUser: %v\n", err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
+		return
 	}
 
 	err = uh.userStore.CreateUser(&user)
@@ -39,7 +40,7 @@ func (uh *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) 
 	utils.WriteJSON(w, http.StatusCreated, utils.Envelope{"user":user})
 }
 
-func (uh *UserHandler) HandleGetUserByID (w http.ResponseWriter, r http.Request) {
+func (uh *UserHandler) HandleGetUserByID(w http.ResponseWriter, r http.Request) {
 	userID, err := utils.ReadParam(&r, "userID")
 	if err != nil {
 		uh.logger.Printf("ERROR: decodingGetUserByID: %v\n", err)

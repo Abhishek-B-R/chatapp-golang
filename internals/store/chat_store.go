@@ -31,8 +31,22 @@ type ChatStore interface {
 }
 
 func (pg *PostgresChatStore) CreateChat(chat *Chat) (*Chat, error) {
-	fmt.Println("Chat created")
-	return nil,nil
+	tx, err := pg.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	query := `INSERT INTO chats (is_group, name, created_by)
+	VALUES ($1, $2, $3)
+	RETURNING id`
+
+	err = tx.QueryRow(query, chat.IsGroup, chat.Name, chat.CreatedBy).Scan(&chat.ChatID)
+	if err != nil {
+		return nil, err
+	}
+
+	return chat, nil
 }
 
 func (pg *PostgresChatStore) DeleteChat(chatID int64) error {
