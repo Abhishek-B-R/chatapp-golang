@@ -42,8 +42,8 @@ type PostgresMessageStore struct {
 	db *sql.DB
 }
 
-func NewPostgresMessageStore(db *sql.DB) *PostgresChatStore {
-	return &PostgresChatStore{
+func NewPostgresMessageStore(db *sql.DB) *PostgresMessageStore {
+	return &PostgresMessageStore{
 		db: db,
 	}
 }
