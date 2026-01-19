@@ -2,16 +2,17 @@ package store
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 )
 
 type Chat struct {
-	ChatID int64 `json:"chat_id"`
+	ChatID int64 `json:"id"`
 	IsGroup bool `json:"is_group"`
 	Name *string `json:"name"`
 	CreatedBy int64 `json:"created_by"`
 	CreatedAt time.Time `json:"created_at"`
+	LastMessageAt *int64 `json:"last_message_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type PostgresChatStore struct {
@@ -24,24 +25,20 @@ func NewPostgresChatStore(db *sql.DB) *PostgresChatStore {
 
 type ChatStore interface {
 	CreateChat(chat *Chat) (*Chat, error)
-	GetUserChats(userID int64) ([]*Chat, error)
+	GetUserChats(userID int64) (*[]Chat, error)
 	GetChatByID(chatID int64) (*Chat, error)
 	UpdateChat(chat *Chat) error
 	DeleteChat(chatID int64) error
 }
 
 func (pg *PostgresChatStore) CreateChat(chat *Chat) (*Chat, error) {
-	tx, err := pg.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
+	query := `
+		INSERT INTO chats (is_group, name, created_by)
+		VALUES ($1, $2, $3)
+		RETURNING id
+	`
 
-	query := `INSERT INTO chats (is_group, name, created_by)
-	VALUES ($1, $2, $3)
-	RETURNING id`
-
-	err = tx.QueryRow(query, chat.IsGroup, chat.Name, chat.CreatedBy).Scan(&chat.ChatID)
+	err := pg.db.QueryRow(query, chat.IsGroup, chat.Name, chat.CreatedBy).Scan(&chat.ChatID)
 	if err != nil {
 		return nil, err
 	}
@@ -49,22 +46,110 @@ func (pg *PostgresChatStore) CreateChat(chat *Chat) (*Chat, error) {
 	return chat, nil
 }
 
+func (pg *PostgresChatStore) UpdateChat(chat *Chat) error {
+		query := `
+		UPDATE chats
+		SET is_group = $1, name = $2, created_by = $3
+		RETURNING id
+	`
+
+	err := pg.db.QueryRow(query, chat.IsGroup, chat.Name, chat.CreatedBy).Scan(&chat.ChatID)
+	return err
+}
+
 func (pg *PostgresChatStore) DeleteChat(chatID int64) error {
-	fmt.Println("Chat deleted")
+	query := `
+		DELETE from chats
+		WHERE id = $1
+	`
+
+	results, err := pg.db.Exec(query, chatID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
 	return nil
 }
 
 func (pg *PostgresChatStore) GetChatByID(chatID int64) (*Chat, error) {
-	fmt.Println("have to implement it still")
-	return nil, nil
+	var chat Chat
+	query := `
+		SELECT id, is_group, name, created_by, last_message_at, created_at, updated_at
+		FROM chats
+		WHERE id = $1
+	`
+
+	err := pg.db.QueryRow(query, chatID).Scan(
+		&chat.ChatID,  
+		&chat.IsGroup, 
+		&chat.Name, 
+		&chat.CreatedBy, 
+		&chat.LastMessageAt, 
+		&chat.CreatedAt, 
+		&chat.UpdatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	return &chat, nil
 }
 
-func (pg *PostgresChatStore) UpdateChat(chat *Chat) error {
-	fmt.Println("Chat updated")
-	return nil
-}
+func (pg *PostgresChatStore) GetUserChats(userID int64) (*[]Chat, error) {
+	var chats []Chat
+	query := `
+		SELECT 
+			c.id, 
+			c.is_group, 
+			c.name, 
+			c.created_by, 
+			c.last_message_at, 
+			c.created_at, 
+			c.updated_at
+		FROM chats c
+		INNER JOIN chat_members cm ON c.id = cm.chat_id
+		WHERE cm.user_id = $1
+		ORDER BY c.last_message_at DESC NULLS LAST
+	`
 
-func (pg *PostgresChatStore) GetUserChats(userID int64) ([]*Chat, error) {
-	fmt.Println("user chats searching")
-	return nil, nil
+	rows, err := pg.db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var chat Chat
+		err = rows.Scan(
+			&chat.ChatID, 
+			&chat.IsGroup, 
+			&chat.Name, 
+			&chat.CreatedBy, 
+			&chat.LastMessageAt, 
+			&chat.CreatedAt, 
+			&chat.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		chats = append(chats, chat)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return &chats, err
 }
