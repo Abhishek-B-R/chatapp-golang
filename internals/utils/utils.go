@@ -37,3 +37,25 @@ func ReadParam(r *http.Request, paramName string) (int64, error) {
 
 	return id, nil
 }
+
+func ReadQueryParamString(r *http.Request, paramName string) (string, error) {
+	val := r.URL.Query().Get(paramName)
+	if val == "" {
+		return "", errors.New("invalid query parameter")
+	}
+	return val, nil
+}
+
+func ReadQueryParamInt64(r *http.Request, paramName string) (int64, error) {
+	val := r.URL.Query().Get(paramName)
+	if val == "" {
+		return 0, errors.New("invalid query parameter")
+	}
+
+	id, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		return 0, errors.New("invalid query parameter type")
+	}
+
+	return id, nil
+}

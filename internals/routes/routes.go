@@ -15,6 +15,10 @@ func SetupRoutes(app *app.Application) *chi.Mux{
 	
 	r.Get("/user/{userID}/chats",app.ChatHandler.HandleGetUserChats)
 	r.Post("/user",app.UserHandler.HandleCreateUser)
+	r.Get("/user/{userID}", app.UserHandler.HandleGetUserByID)
+	r.Get("/user/email/{email}", app.UserHandler.HandlerGetUserByEmail)
+	r.Get("/user/username/{username}", app.UserHandler.HandleGetUserByUsername)
+	r.Post("/user/update_last_seen/{userID}", app.UserHandler.HandleUpdateLastSeen)
 
 	r.Post("/chat/add", app.ChatMemberHandler.HandleAddMember)
 	r.Delete("/chat/delete/{chatID}/{userID}", app.ChatMemberHandler.HandleRemoveMember)

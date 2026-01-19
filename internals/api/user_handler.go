@@ -7,6 +7,7 @@ import (
 
 	"github.com/Abhishek-B-R/chat-app-golang/internals/store"
 	"github.com/Abhishek-B-R/chat-app-golang/internals/utils"
+	"github.com/go-chi/chi"
 )
 
 type UserHandler struct {
@@ -40,8 +41,8 @@ func (uh *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) 
 	utils.WriteJSON(w, http.StatusCreated, utils.Envelope{"user":user})
 }
 
-func (uh *UserHandler) HandleGetUserByID(w http.ResponseWriter, r http.Request) {
-	userID, err := utils.ReadParam(&r, "userID")
+func (uh *UserHandler) HandleGetUserByID(w http.ResponseWriter, r *http.Request) {
+	userID, err := utils.ReadParam(r, "userID")
 	if err != nil {
 		uh.logger.Printf("ERROR: decodingGetUserByID: %v\n", err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
@@ -59,10 +60,9 @@ func (uh *UserHandler) HandleGetUserByID(w http.ResponseWriter, r http.Request) 
 }
 
 func (uh *UserHandler) HandlerGetUserByEmail(w http.ResponseWriter, r *http.Request) {
-	var email string
-	err := json.NewDecoder(r.Body).Decode(&email)
-	if err != nil {
-		uh.logger.Printf("ERROR: decodingGetUserByEmail: %v\n", err)
+	email := chi.URLParam(r, "email")
+	if email == "" {
+		uh.logger.Printf("ERROR: decodingGetUserByEmail: Invalid email field")
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
 		return
 	}
@@ -78,11 +78,10 @@ func (uh *UserHandler) HandlerGetUserByEmail(w http.ResponseWriter, r *http.Requ
 }
 
 func (uh *UserHandler) HandleGetUserByUsername(w http.ResponseWriter, r *http.Request) {
-	var username string
-	err := json.NewDecoder(r.Body).Decode(&username)
-	if err != nil {
-		uh.logger.Printf("ERROR: decodingGetUserByUsername: %v\n", username)
-		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"invalid request sent"})
+	username := chi.URLParam(r, "username")
+	if username == "" {
+		uh.logger.Printf("ERROR: decodingGetUserByUsername: Invalid username field")
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
 		return
 	}
 

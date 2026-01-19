@@ -2,7 +2,6 @@ package store
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 )
 
@@ -49,21 +48,58 @@ func (pg *PostgresUserStore) CreateUser(user *User) error {
 }
 
 func (pg *PostgresUserStore) GetUserByID(id int64) (*User, error) {
-	fmt.Println("getting user by their id")
-	return nil, nil
+	var user User;
+	query := `
+		SELECT username, email, avatar_url, bio, created_at FROM users
+		WHERE id = $1
+	`
+
+	err := pg.db.QueryRow(query, id).Scan(&user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (pg *PostgresUserStore) GetUserByEmail(email string) (*User, error) {
-	fmt.Println("getting user by their email")
-	return nil, nil
+	var user User;
+	query := `
+		SELECT username, email, avatar_url, bio, created_at FROM users
+		WHERE email = $1
+	`
+
+	err := pg.db.QueryRow(query, email).Scan(&user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (pg *PostgresUserStore) GetUserByUsername(username string) (*User, error) {
-	fmt.Println("getting user by their username")
-	return nil, nil
+	var user User;
+	query := `
+		SELECT username, email, avatar_url, bio, created_at FROM users
+		WHERE username = $1
+	`
+
+	err := pg.db.QueryRow(query, username).Scan(&user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (pg *PostgresUserStore) UpdateLastSeen(userID int64) error {
-	fmt.Println("updating last seen for user with id: ", userID)
+	query := `
+		UPDATE users
+		SET last_seen_at = $1
+		WHERE id = $2
+		AND (last_seen_at IS NULL OR last_seen_at < $1);
+	`
+
+	_, err := pg.db.Exec(query, time.Now().UTC(), userID)
+	if err != nil {
+		return err
+	}
 	return nil
 }
