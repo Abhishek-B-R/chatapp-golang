@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -18,7 +19,9 @@ type ChatMember struct {
 	ChatID int64 `json:"chat_id"`
 	UserID int64 `json:"user_id"`
 	Role ChatGroupRole `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
+	LastReadMessageID int64 `json:"last_read_message_id"`
+	JoinedAt time.Time `json:"joined_at"`
+	Muted bool `json:"muted"`
 }
 
 type PostgresChatMemberStore struct{
@@ -41,7 +44,24 @@ type ChatMemberStore interface {
 }
 
 func (pg *PostgresChatMemberStore) AddMember(chatID, userID int64, role string) error {
-	fmt.Println("Added new member")
+	role = strings.TrimSpace(strings.ToLower(role))
+
+	switch role {
+	case "owner", "admin", "member":
+		// ok
+	default:
+		return fmt.Errorf("invalid role: %q", role)
+	}
+
+	query := `
+		INSERT INTO chat_members (user_id, chat_id, role, muted)
+		VALUES ($1, $2, $3, $4)
+	`
+
+	_, err := pg.db.Exec(query, userID, chatID, role, false)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

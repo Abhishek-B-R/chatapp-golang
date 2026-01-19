@@ -60,9 +60,9 @@ func (mh *MessageHandler) HandleGetMessage(w http.ResponseWriter, r *http.Reques
 
 func (mh *MessageHandler) HandleGetChatMessages(w http.ResponseWriter, r *http.Request) {
 	var params struct {
-		chatID int64
-		limit int64
-		offset int64
+		ChatID int64
+		Limit int64
+		Offset int64
 	}
 	err := json.NewDecoder(r.Body).Decode(&params)
 	if err != nil {
@@ -71,7 +71,7 @@ func (mh *MessageHandler) HandleGetChatMessages(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	messages, err := mh.store.GetChatMessages(params.chatID, params.limit, params.offset)
+	messages, err := mh.store.GetChatMessages(params.ChatID, params.Limit, params.Offset)
 	if err != nil {
 		mh.logger.Printf("ERROR: getChatMessages: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to get chat messages"})
@@ -120,8 +120,8 @@ func (mh *MessageHandler) HandleDeleteMessage(w http.ResponseWriter, r *http.Req
 
 func (mh *MessageHandler) HandleGetUnreadCount(w http.ResponseWriter, r *http.Request){
 	var params struct{
-		chatID int64
-		userID int64
+		ChatID int64
+		UserID int64
 	}
 	err := json.NewDecoder(r.Body).Decode(&params)
 	if err != nil {
@@ -130,7 +130,7 @@ func (mh *MessageHandler) HandleGetUnreadCount(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	count, err := mh.store.GetUnreadCount(params.chatID, params.userID)
+	count, err := mh.store.GetUnreadCount(params.ChatID, params.UserID)
 	if err != nil {
 		mh.logger.Printf("ERROR: getUnreadCount: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to retrieve unread count"})

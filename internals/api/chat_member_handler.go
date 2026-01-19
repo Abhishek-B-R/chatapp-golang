@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -23,9 +24,11 @@ func NewChatMemberHandler(ChatMemberStore store.ChatMemberStore, logger *log.Log
 
 func (cmh *ChatMemberHandler) HandleAddMember(w http.ResponseWriter, r *http.Request) {
 	var params struct{
-		chatID, userID int64
-		role string
+		ChatID, UserID int64
+		Role string
 	}
+
+	fmt.Println(r.Body)
 	err := json.NewDecoder(r.Body).Decode(&params)
 	if err != nil {
 		cmh.logger.Printf("ERROR: decodingAddMember: %v\n",err)
@@ -33,7 +36,7 @@ func (cmh *ChatMemberHandler) HandleAddMember(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = cmh.chatMemberStore.AddMember(params.chatID, params.userID, params.role)
+	err = cmh.chatMemberStore.AddMember(params.ChatID, params.UserID, params.Role)
 	if err != nil {
 		cmh.logger.Printf("ERROR: addMember: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to add member"})
@@ -45,7 +48,7 @@ func (cmh *ChatMemberHandler) HandleAddMember(w http.ResponseWriter, r *http.Req
 
 func (cmh *ChatMemberHandler) HandleRemoveMember(w http.ResponseWriter, r *http.Request) {
 	var params struct{
-		chatID, userID int64
+		ChatID, UserID int64
 	}
 	err := json.NewDecoder(r.Body).Decode(&params)
 	if err != nil {
@@ -54,7 +57,7 @@ func (cmh *ChatMemberHandler) HandleRemoveMember(w http.ResponseWriter, r *http.
 		return
 	}
 
-	err = cmh.chatMemberStore.RemoveMember(params.chatID, params.userID)
+	err = cmh.chatMemberStore.RemoveMember(params.ChatID, params.UserID)
 	if err != nil {
 		cmh.logger.Printf("ERROR: removeMember: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to remove member"})
@@ -84,7 +87,7 @@ func (cmh *ChatMemberHandler) HandleGetChatMembers(w http.ResponseWriter, r *htt
 
 func (cmh *ChatMemberHandler) HandleGetUserRole(w http.ResponseWriter, r *http.Request) {
 	var params struct{
-		chatID, userID int64
+		ChatID, UserID int64
 	}
 	err := json.NewDecoder(r.Body).Decode(&params)
 	if err != nil {
@@ -93,7 +96,7 @@ func (cmh *ChatMemberHandler) HandleGetUserRole(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	role, err := cmh.chatMemberStore.GetUserRole(params.chatID, params.userID)
+	role, err := cmh.chatMemberStore.GetUserRole(params.ChatID, params.UserID)
 	if err != nil {
 		cmh.logger.Printf("ERROR: getUserRole: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to retrieve user role"})
@@ -105,7 +108,7 @@ func (cmh *ChatMemberHandler) HandleGetUserRole(w http.ResponseWriter, r *http.R
 
 func (cmh *ChatMemberHandler) HandleIsMember(w http.ResponseWriter, r *http.Request) {
 	var params struct{
-		chatID, userID int64
+		ChatID, UserID int64
 	}
 	err := json.NewDecoder(r.Body).Decode(&params)
 	if err != nil {
@@ -114,7 +117,7 @@ func (cmh *ChatMemberHandler) HandleIsMember(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	isMember, err := cmh.chatMemberStore.IsMember(params.chatID, params.userID)
+	isMember, err := cmh.chatMemberStore.IsMember(params.ChatID, params.UserID)
 	if err != nil {
 		cmh.logger.Printf("ERROR: isMember: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to retrieve is_member"})
@@ -126,7 +129,7 @@ func (cmh *ChatMemberHandler) HandleIsMember(w http.ResponseWriter, r *http.Requ
 
 func (cmh *ChatMemberHandler) HandleUpdateLastRead(w http.ResponseWriter, r *http.Request) {
 	var params struct{
-		chatID, userID,messageID int64
+		ChatID, UserID, MessageID int64
 	}
 	err := json.NewDecoder(r.Body).Decode(&params)
 	if err != nil {
@@ -135,7 +138,7 @@ func (cmh *ChatMemberHandler) HandleUpdateLastRead(w http.ResponseWriter, r *htt
 		return
 	}
 
-	err = cmh.chatMemberStore.UpdateLastRead(params.chatID, params.userID, params.messageID)
+	err = cmh.chatMemberStore.UpdateLastRead(params.ChatID, params.UserID, params.MessageID)
 	if err != nil {
 		cmh.logger.Printf("ERROR: updateLastRead: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to update last read"})

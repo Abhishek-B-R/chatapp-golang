@@ -7,7 +7,6 @@ CREATE TABLE IF NOT EXISTS chat_members (
     last_read_message_id BIGINT,
     joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     muted BOOLEAN DEFAULT false,
-    pinned BOOLEAN DEFAULT false,
     
     PRIMARY KEY (chat_id, user_id),
     
