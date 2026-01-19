@@ -24,6 +24,17 @@ type ChatMember struct {
 	Muted bool `json:"muted"`
 }
 
+// New struct - for API responses with user details
+type ChatMemberWithUser struct {
+	ChatID        int64     `json:"chatId"`
+	UserID        int64     `json:"userId"`
+	Role          string    `json:"role"`
+	JoinedAt      time.Time `json:"joinedAt"`
+	Username      string    `json:"username"`
+	Email         string    `json:"email,omitempty"`
+	ProfilePicURL string    `json:"profilePicUrl,omitempty"`
+}
+
 type PostgresChatMemberStore struct{
 	db *sql.DB
 }
@@ -37,7 +48,7 @@ func NewPostgresChatMemberStore(db *sql.DB) *PostgresChatMemberStore{
 type ChatMemberStore interface {
 	AddMember(chatID, userID int64, role string) error
     RemoveMember(chatID, userID int64) error
-    GetChatMembers(chatID int64) ([]*ChatMember, error)
+    GetChatMembers(chatID int64) ([]*ChatMemberWithUser, error)
     GetUserRole(chatID, userID int64) (string, error)
     IsMember(chatID, userID int64) (bool, error)
     UpdateLastRead(chatID, userID, messageID int64) error
@@ -87,14 +98,59 @@ func (pg *PostgresChatMemberStore) RemoveMember(chatID, userID int64) error {
 	return nil
 }
 
-func (pg *PostgresChatMemberStore) GetChatMembers(chatID int64) ([]*ChatMember, error){
-	fmt.Println("Fetching chat members")
-	return nil, nil
+func (pg *PostgresChatMemberStore) GetChatMembers(chatID int64) ([]*ChatMemberWithUser, error) {
+	query := `
+		SELECT 
+			cm.chat_id,
+			cm.user_id,
+			cm.role,
+			cm.joined_at,
+			u.username,
+			u.email,
+			u.avatar_url  -- if you have this
+		FROM chat_members cm
+		JOIN users u ON cm.user_id = u.id
+		WHERE cm.chat_id = $1
+		ORDER BY cm.joined_at DESC
+	`
+	
+	rows, err := pg.db.Query(query, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var members []*ChatMemberWithUser
+	for rows.Next() {
+		member := &ChatMemberWithUser{}
+		err := rows.Scan(
+			&member.ChatID,
+			&member.UserID,
+			&member.Role,
+			&member.JoinedAt,
+			&member.Username,
+			&member.Email,   
+			&member.ProfilePicURL,
+		)
+		if err != nil {
+			return nil, err
+		}
+		members = append(members, member)
+	}
+	
+	return members, rows.Err()
 }
 
 func (pg *PostgresChatMemberStore) GetUserRole(chatID, userID int64) (string, error) {
-	fmt.Println("Fetching user role")
-	return "member", nil
+	role := ""
+	query := `
+		SELECT role FROM chat_members
+		WHERE chat_id = $1 AND user_id = $2
+	`
+
+	pg.db.QueryRow(query, chatID, userID).Scan(&role)
+	fmt.Println(role)
+	return role, nil
 }
 
 func (pg *PostgresChatMemberStore) IsMember(chatID, userID int64) (bool, error) {

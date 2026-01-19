@@ -87,17 +87,16 @@ func (cmh *ChatMemberHandler) HandleGetChatMembers(w http.ResponseWriter, r *htt
 }
 
 func (cmh *ChatMemberHandler) HandleGetUserRole(w http.ResponseWriter, r *http.Request) {
-	var params struct{
-		ChatID, UserID int64
-	}
-	err := json.NewDecoder(r.Body).Decode(&params)
-	if err != nil {
+	chatID, err := utils.ReadParam(r, "chatID")
+	userID, err2 := utils.ReadParam(r, "userID")
+
+	if err != nil || err2 != nil {
 		cmh.logger.Printf("ERROR: decodingGetUserRole: %v\n",err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
 		return
 	}
 
-	role, err := cmh.chatMemberStore.GetUserRole(params.ChatID, params.UserID)
+	role, err := cmh.chatMemberStore.GetUserRole(chatID, userID)
 	if err != nil {
 		cmh.logger.Printf("ERROR: getUserRole: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to retrieve user role"})
