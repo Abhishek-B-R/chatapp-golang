@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -27,8 +26,6 @@ func (cmh *ChatMemberHandler) HandleAddMember(w http.ResponseWriter, r *http.Req
 		ChatID, UserID int64
 		Role string
 	}
-
-	fmt.Println(r.Body)
 	err := json.NewDecoder(r.Body).Decode(&params)
 	if err != nil {
 		cmh.logger.Printf("ERROR: decodingAddMember: %v\n",err)
@@ -47,24 +44,28 @@ func (cmh *ChatMemberHandler) HandleAddMember(w http.ResponseWriter, r *http.Req
 }
 
 func (cmh *ChatMemberHandler) HandleRemoveMember(w http.ResponseWriter, r *http.Request) {
-	var params struct{
-		ChatID, UserID int64
-	}
-	err := json.NewDecoder(r.Body).Decode(&params)
+	chatID, err := utils.ReadParam(r, "chatID")
+	userID, err2 := utils.ReadParam(r, "userID")
+
 	if err != nil {
-		cmh.logger.Printf("ERROR: decodingRemoveMember: %v\n",err)
+		cmh.logger.Printf("ERROR: decodingRemoveMember: err: %v\n",err)
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
+		return
+	}
+	if err2 != nil {
+		cmh.logger.Printf("ERROR: decodingRemoveMember: err2: %v\n",err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
 		return
 	}
 
-	err = cmh.chatMemberStore.RemoveMember(params.ChatID, params.UserID)
+	err = cmh.chatMemberStore.RemoveMember(chatID, userID)
 	if err != nil {
 		cmh.logger.Printf("ERROR: removeMember: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to remove member"})
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, utils.Envelope{})
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"status":"success"})
 }
 
 func (cmh *ChatMemberHandler) HandleGetChatMembers(w http.ResponseWriter, r *http.Request){

@@ -48,9 +48,9 @@ func (pg *PostgresChatMemberStore) AddMember(chatID, userID int64, role string) 
 
 	switch role {
 	case "owner", "admin", "member":
-		// ok
 	default:
-		return fmt.Errorf("invalid role: %q", role)
+		fmt.Printf("WARN: invalid role: %q", role)
+		role = "member"
 	}
 
 	query := `
@@ -66,7 +66,24 @@ func (pg *PostgresChatMemberStore) AddMember(chatID, userID int64, role string) 
 }
 
 func (pg *PostgresChatMemberStore) RemoveMember(chatID, userID int64) error {
-	fmt.Println("removed member")
+	query := `
+		DELETE FROM chat_members 
+		WHERE chat_id = $1 AND user_id = $2
+	`
+
+	results, err := pg.db.Exec(query, chatID, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
 	return nil
 }
 
