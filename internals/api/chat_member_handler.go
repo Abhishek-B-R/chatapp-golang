@@ -113,17 +113,16 @@ func (cmh *ChatMemberHandler) HandleGetUserRole(w http.ResponseWriter, r *http.R
 }
 
 func (cmh *ChatMemberHandler) HandleIsMember(w http.ResponseWriter, r *http.Request) {
-	var params struct{
-		ChatID, UserID int64
-	}
-	err := json.NewDecoder(r.Body).Decode(&params)
-	if err != nil {
+	chatID, err := utils.ReadParam(r, "chatID")
+	userID, err2 := utils.ReadParam(r, "userID")
+
+	if err != nil || err2 != nil {
 		cmh.logger.Printf("ERROR: decodingIsMember: %v\n",err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
 		return
 	}
 
-	isMember, err := cmh.chatMemberStore.IsMember(params.ChatID, params.UserID)
+	isMember, err := cmh.chatMemberStore.IsMember(chatID, userID)
 	if err != nil {
 		cmh.logger.Printf("ERROR: isMember: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to retrieve is_member"})

@@ -157,11 +157,35 @@ func (pg *PostgresChatMemberStore) GetUserRole(chatID, userID int64) (string, er
 }
 
 func (pg *PostgresChatMemberStore) IsMember(chatID, userID int64) (bool, error) {
-	fmt.Println("checking if this user is part of this chat")
-	return false, nil
+	role := ""
+	query := `
+		SELECT role FROM chat_members
+		WHERE chat_id = $1 AND user_id = $2
+	`
+
+	err := pg.db.QueryRow(query, chatID, userID).Scan(&role)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (pg *PostgresChatMemberStore) UpdateLastRead(chatID, userID, messageID int64) error {
-	fmt.Println("updating latest info")
+	query := `
+		UPDATE chat_members
+		SET last_read_message_id = $1
+		WHERE chat_id = $2 AND user_id = $3
+		AND (last_read_message_id IS NULL OR last_read_message_id < $1);
+	`
+
+	_, err := pg.db.Exec(query, messageID, chatID, userID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
