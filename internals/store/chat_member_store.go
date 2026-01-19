@@ -148,7 +148,10 @@ func (pg *PostgresChatMemberStore) GetUserRole(chatID, userID int64) (string, er
 		WHERE chat_id = $1 AND user_id = $2
 	`
 
-	pg.db.QueryRow(query, chatID, userID).Scan(&role)
+	err := pg.db.QueryRow(query, chatID, userID).Scan(&role)
+	if err != nil {
+		return "",err
+	}
 	fmt.Println(role)
 	return role, nil
 }

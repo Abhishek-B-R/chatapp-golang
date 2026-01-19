@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -98,6 +99,11 @@ func (cmh *ChatMemberHandler) HandleGetUserRole(w http.ResponseWriter, r *http.R
 
 	role, err := cmh.chatMemberStore.GetUserRole(chatID, userID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error": "user is not a member of this chat"})
+			return
+		}
+		
 		cmh.logger.Printf("ERROR: getUserRole: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to retrieve user role"})
 		return
