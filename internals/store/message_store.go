@@ -127,11 +127,44 @@ func (pg *PostgresMessageStore) CreateMessage(msg *Message) error {
 	return nil
 }
 
-func (pg *PostgresMessageStore) GetMessage(id int64) (*Message, error) {
-	// query := `
-	// 	SELECT 
-	// `
-	return nil, nil
+func (pg *PostgresMessageStore) GetMessage(msgID int64) (*Message, error) {
+	var msg Message;
+	q1 := `
+		SELECT
+			id,
+			chat_id,
+			sender_id,
+			type,
+			content,
+			reply_to_message_id,
+			created_at,
+			edited_at,
+			deleted_at
+		FROM messages
+		WHERE id = $1
+	`
+	err := pg.db.QueryRow(q1, msgID).Scan(
+		&msg.ID, 
+		&msg.ChatID, 
+		&msg.SenderID, 
+		&msg.Type, 
+		&msg.Content, 
+		&msg.ReplyToMessageID, 
+		&msg.CreatedAt, 
+		&msg.EditedAt,
+		&msg.DeletedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	attachments, err := pg.getAttachmentsForMessages([]int64{msg.ID})
+	if err != nil {
+		return nil, err
+	}
+
+	msg.Attachments = attachments
+	return &msg, nil
 }
 
 func (pg *PostgresMessageStore) GetChatMessages(chatID, limit, offset int64) (*[]Message, error) {
@@ -190,11 +223,13 @@ func (pg *PostgresMessageStore) GetChatMessages(chatID, limit, offset int64) (*[
 		return &msgs, nil
 	}
 
+	//fetch attachments
 	attachments, err := pg.getAttachmentsForMessages(msgIDs)
 	if err != nil {
 		return nil, err
 	}
 
+	// stich them with messages
 	attMap := make(map[int64][]MessageAttachment)
 	for _, a := range attachments {
 		attMap[a.MessageID] = append(attMap[a.MessageID], a)
