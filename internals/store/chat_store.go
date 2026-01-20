@@ -10,8 +10,8 @@ type Chat struct {
 	IsGroup bool `json:"is_group"`
 	Name *string `json:"name"`
 	CreatedBy int64 `json:"created_by"`
-	CreatedAt time.Time `json:"created_at"`
 	LastMessageAt *int64 `json:"last_message_at"`
+	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
