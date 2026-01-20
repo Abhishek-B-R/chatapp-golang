@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -63,7 +64,7 @@ func NewPostgresMessageStore(db *sql.DB) *PostgresMessageStore {
 type MessageStore interface{
 	CreateMessage(msg *Message) error
     GetMessage(id int64) (*Message, error)
-    GetChatMessages(chatID, limit, offset int64) ([]*Message, error)
+    GetChatMessages(chatID, limit, offset int64) (*[]Message, error)
     UpdateMessage(msg *Message) error
     DeleteMessage(id int64) error // soft delete
     GetUnreadCount(chatID, userID int64) (int64, error)
@@ -127,26 +128,167 @@ func (pg *PostgresMessageStore) CreateMessage(msg *Message) error {
 }
 
 func (pg *PostgresMessageStore) GetMessage(id int64) (*Message, error) {
-	fmt.Println("getting message with id: ",id)
+	// query := `
+	// 	SELECT 
+	// `
 	return nil, nil
 }
 
-func (pg *PostgresMessageStore) GetChatMessages(chatID, limit, offset int64) ([]*Message, error) {
-	fmt.Println("getting chat messages")
-	return nil, nil
+func (pg *PostgresMessageStore) GetChatMessages(chatID, limit, offset int64) (*[]Message, error) {
+	q1 := `
+		SELECT
+			id,
+			chat_id,
+			sender_id,
+			type,
+			content,
+			reply_to_message_id,
+			created_at,
+			edited_at,
+			deleted_at
+		FROM messages
+		WHERE chat_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3;
+	`
+
+	rows, err := pg.db.Query(q1, chatID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var msgIDs []int64
+	var msgs []Message
+
+	for rows.Next() {
+		var m Message
+		err := rows.Scan(
+			&m.ID,
+			&m.ChatID,
+			&m.SenderID,
+			&m.Type,
+			&m.Content,
+			&m.ReplyToMessageID,
+			&m.CreatedAt,
+			&m.EditedAt,
+			&m.DeletedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		msgs = append(msgs, m)
+		msgIDs = append(msgIDs, m.ID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(msgIDs) == 0 {
+		return &msgs, nil
+	}
+
+	attachments, err := pg.getAttachmentsForMessages(msgIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	attMap := make(map[int64][]MessageAttachment)
+	for _, a := range attachments {
+		attMap[a.MessageID] = append(attMap[a.MessageID], a)
+	}
+
+	for i := range msgs {
+		msgs[i].Attachments = attMap[msgs[i].ID]
+
+		if msgs[i].DeletedAt != nil {
+			msgs[i].Content = nil
+			msgs[i].Type = "deleted"
+			msgs[i].Attachments = nil
+		}
+	}
+	
+	return &msgs, nil
 }
 
 func (pg *PostgresMessageStore) UpdateMessage(msg *Message) error {
-	fmt.Println("updating message")
-	return nil
+	query := `
+		UPDATE messages
+        SET content = $1, edited_at = NOW()
+        WHERE id = $2
+          AND deleted_at IS NULL
+        RETURNING id
+	`
+
+	err := pg.db.QueryRow(query, msg.Content, msg.ID).Scan(&msg.ID)
+	if err == sql.ErrNoRows {	
+        return errors.New("message not found or already deleted")
+    }
+
+	return err
 }
 
-func (pg *PostgresMessageStore) DeleteMessage(id int64) error {
-	fmt.Println("deleting message") // not actually deleted, just marked as deleted
+func (pg *PostgresMessageStore) DeleteMessage(msgID int64) error {
+	query := `
+		UPDATE messages
+		SET deleted_at = NOW()
+		WHERE id = $2
+	` // not actually deleted, just marked as deleted
+
+	_, err := pg.db.Exec(query, msgID)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (pg *PostgresMessageStore) GetUnreadCount(chatID, userID int64) (int64, error) {
 	fmt.Println("getting unread chat count")
 	return 0, nil
+}
+
+func (pg *PostgresMessageStore) getAttachmentsForMessages(messageIDs []int64) ([]MessageAttachment, error) {
+	const q = `
+		SELECT
+			id,
+			message_id,
+			type,
+			url,
+			filename,
+			size_bytes,
+			metadata,
+			created_at
+		FROM message_attachments
+		WHERE message_id = ANY($1)
+		ORDER BY created_at ASC;
+`
+
+	rows, err := pg.db.Query(q, messageIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var atts []MessageAttachment
+	for rows.Next() {
+		var a MessageAttachment
+		err := rows.Scan(
+			&a.ID,
+			&a.MessageID,
+			&a.Type,
+			&a.URL,
+			&a.Filename,
+			&a.SizeBytes,
+			&a.Metadata,
+			&a.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		atts = append(atts, a)
+	}
+
+	return atts, rows.Err()
 }

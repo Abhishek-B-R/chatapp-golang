@@ -28,6 +28,8 @@ func SetupRoutes(app *app.Application) *chi.Mux{
 	r.Post("/chat/update", app.ChatMemberHandler.HandleUpdateLastRead)
 
 	r.Post("/message", app.MessageHandler.HandleCreateMessage)
+	r.Delete("/message/{msgID}", app.MessageHandler.HandleDeleteMessage)
+	r.Get("/messages/{chatID}/{limit}/{offset}", app.MessageHandler.HandleGetChatMessages)
 
 	r.Get("/health",app.HealthCheck)
 	return r

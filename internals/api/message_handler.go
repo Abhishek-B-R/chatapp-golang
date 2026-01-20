@@ -59,19 +59,17 @@ func (mh *MessageHandler) HandleGetMessage(w http.ResponseWriter, r *http.Reques
 }
 
 func (mh *MessageHandler) HandleGetChatMessages(w http.ResponseWriter, r *http.Request) {
-	var params struct {
-		ChatID int64
-		Limit int64
-		Offset int64
-	}
-	err := json.NewDecoder(r.Body).Decode(&params)
-	if err != nil {
+	chatID, err := utils.ReadParam(r, "chatID")
+	limit, err2 := utils.ReadParam(r, "limit")
+	offset, err3 := utils.ReadParam(r, "offset")
+
+	if err != nil || err2 != nil || err3 != nil {
 		mh.logger.Printf("ERROR: decodingGetChatMessages: %v\n", err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
 		return
 	}
 
-	messages, err := mh.store.GetChatMessages(params.ChatID, params.Limit, params.Offset)
+	messages, err := mh.store.GetChatMessages(chatID, limit, offset)
 	if err != nil {
 		mh.logger.Printf("ERROR: getChatMessages: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to get chat messages"})
