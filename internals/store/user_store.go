@@ -2,14 +2,46 @@ package store
 
 import (
 	"database/sql"
+	"errors"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
+
+type password struct {
+	plainText *string
+	hash []byte
+}
+
+func (p *password) Set(plainTextPassword string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(plainTextPassword),12)
+	if err != nil {
+		return err
+	}
+
+	p.plainText = &plainTextPassword
+	p.hash = hash
+	return nil
+}
+
+func (p *password) Matches(plainTextPassword string) (bool,error) {
+	err := bcrypt.CompareHashAndPassword(p.hash, []byte(plainTextPassword))
+	if err != nil {
+		switch {
+			case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):
+				return false, nil
+			default:
+				return false, err
+		}
+	}
+	return true, nil
+}
 
 type User struct {
 	ID int64 `json:"id"`
 	Username string `json:"username"`
 	Email string `json:"email"`
-	PasswordHash string `json:"password_hash"`
+	PasswordHash password `json:"-"`
 	AvatarURL string `json:"avatar_url"`
 	Bio string `json:"bio"`
 	CreatedAt time.Time `json:"created_at"`
@@ -31,6 +63,7 @@ type UserStore interface {
     GetUserByEmail(email string) (*User, error)
     GetUserByUsername(username string) (*User, error)
     UpdateLastSeen(userID int64) error
+	UpdateUser(user *User) error
 }
 
 func (pg *PostgresUserStore) CreateUser(user *User) error {
@@ -40,7 +73,7 @@ func (pg *PostgresUserStore) CreateUser(user *User) error {
 	RETURNING id, created_at
 	`
 
-	err := pg.db.QueryRow(query, user.Username, user.Email, user.PasswordHash, user.AvatarURL, user.Bio).Scan(&user.ID, &user.CreatedAt)
+	err := pg.db.QueryRow(query, user.Username, user.Email, user.PasswordHash.hash, user.AvatarURL, user.Bio).Scan(&user.ID, &user.CreatedAt)
 	if err != nil {
 		return err
 	}
@@ -102,4 +135,32 @@ func (pg *PostgresUserStore) UpdateLastSeen(userID int64) error {
 		return err
 	}
 	return nil
+}
+
+func (pg *PostgresUserStore) UpdateUser(user *User) error {
+	query := `
+		UPDATE users
+		SET username = $1, email = $2, avatar_url = $3, bio = $4, last_seen_at = NOW()
+		WHERE id = $5;
+	`
+
+	_, err := pg.db.Exec(query, user.Username, user.Email, user.AvatarURL, user.Bio, user.ID)
+	return err
+}
+
+func (pg *PostgresUserStore) UpdateUserPassword(password string) error {
+	query := `
+		UPDATE users
+		SET username = $1, email = $2, avatar_url = $3, bio = $4, last_seen_at = NOW()
+		WHERE id = $5;
+	`
+
+	
+	hash, err := bcrypt.GenerateFromPassword([]byte(password),12)
+	if err != nil {
+		return err
+	}
+	
+	_, err = pg.db.Exec(query, hash)
+	return err
 }

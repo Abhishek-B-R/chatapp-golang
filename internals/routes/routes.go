@@ -12,8 +12,8 @@ func SetupRoutes(app *app.Application) *chi.Mux{
 	r.Get("/chat/{chatID}",app.ChatHandler.HandleGetChatByID)
 	r.Put("/chat",app.ChatHandler.HandleUpdateChat)
 	r.Delete("/chat/{chatID}",app.ChatHandler.HandleDeleteChat)
-	
 	r.Get("/user/{userID}/chats",app.ChatHandler.HandleGetUserChats)
+	
 	r.Post("/user",app.UserHandler.HandleCreateUser)
 	r.Get("/user/{userID}", app.UserHandler.HandleGetUserByID)
 	r.Get("/user/email/{email}", app.UserHandler.HandlerGetUserByEmail)
@@ -28,9 +28,10 @@ func SetupRoutes(app *app.Application) *chi.Mux{
 	r.Put("/chat/update", app.ChatMemberHandler.HandleUpdateLastRead)
 
 	r.Post("/message", app.MessageHandler.HandleCreateMessage)
-	r.Delete("/message/{msgID}", app.MessageHandler.HandleDeleteMessage)
 	r.Get("/message/{msgID}", app.MessageHandler.HandleGetMessage)
 	r.Get("/messages/{chatID}/{limit}/{offset}", app.MessageHandler.HandleGetChatMessages)
+	r.Put("/message/update", app.MessageHandler.HandleUpdateMessage)
+	r.Delete("/message/{msgID}", app.MessageHandler.HandleDeleteMessage)
 	r.Get("/messages/unread/{chatID}/{userID}",app.MessageHandler.HandleGetUnreadCount)
 
 	r.Get("/health",app.HealthCheck)
