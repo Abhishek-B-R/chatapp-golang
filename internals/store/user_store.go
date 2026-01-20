@@ -1,6 +1,7 @@
 package store
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"time"
@@ -44,7 +45,9 @@ type User struct {
 	PasswordHash password `json:"-"`
 	AvatarURL string `json:"avatar_url"`
 	Bio string `json:"bio"`
+	LastSeenAt time.Time `json:"last_seen_at"`
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type PostgresUserStore struct {
@@ -140,7 +143,7 @@ func (pg *PostgresUserStore) UpdateLastSeen(userID int64) error {
 func (pg *PostgresUserStore) UpdateUser(user *User) error {
 	query := `
 		UPDATE users
-		SET username = $1, email = $2, avatar_url = $3, bio = $4, last_seen_at = NOW()
+		SET username = $1, email = $2, avatar_url = $3, bio = $4, last_seen_at = NOW(), updated_at = NOW()
 		WHERE id = $5;
 	`
 
@@ -163,4 +166,41 @@ func (pg *PostgresUserStore) UpdateUserPassword(password string) error {
 	
 	_, err = pg.db.Exec(query, hash)
 	return err
+}
+
+func (pg *PostgresUserStore) GetUserToken(plainTextPassword string) (*User, error) {
+	tokenHash := sha256.Sum256([]byte(plainTextPassword))
+
+	query := `
+		SELECT u.id, u.username, u.email, u.password_hash, u.avatar_url, u.bio, u.last_seen_at, u.created_at, u.updated_at
+		FROM users u
+		INNER JOIN tokens t ON t.user_id = u.id
+		WHERE t.token_hash = $1 AND t.expiry > $3
+	`
+
+	user := &User{
+		PasswordHash: password{},
+	}
+
+	err := pg.db.QueryRow(query, tokenHash[:], time.Now()).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.PasswordHash.hash,
+		&user.AvatarURL,
+		&user.Bio,
+		&user.LastSeenAt,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, err
 }
