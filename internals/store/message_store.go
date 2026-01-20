@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -280,8 +279,29 @@ func (pg *PostgresMessageStore) DeleteMessage(msgID int64) error {
 }
 
 func (pg *PostgresMessageStore) GetUnreadCount(chatID, userID int64) (int64, error) {
-	fmt.Println("getting unread chat count")
-	return 0, nil
+	tx, err := pg.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	var lastReadMsgID int64;
+	q1 := `
+		SELECT COALESCE(last_read_message_id, 0)
+		FROM chat_members
+		WHERE user_id = $1 AND chat_id = $2;
+	`
+	err = tx.QueryRow(q1, userID, chatID).Scan(&lastReadMsgID)
+	if err != nil {
+		return 0, err
+	}
+
+	var UnreadCount int64;
+	q2 := `
+		SELECT COUNT(*) FROM messages
+		WHERE chat_id = $1 AND id > $2;
+	`
+	err = tx.QueryRow(q2, chatID, lastReadMsgID).Scan(&UnreadCount)
+	return UnreadCount, nil
 }
 
 func (pg *PostgresMessageStore) getAttachmentsForMessages(messageIDs []int64) ([]MessageAttachment, error) {

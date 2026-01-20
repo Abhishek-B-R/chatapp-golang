@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS chat_members (
     chat_id BIGINT REFERENCES chats(id) ON DELETE CASCADE,
     user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
     role VARCHAR(20) DEFAULT 'member' NOT NULL,
-    last_read_message_id BIGINT,
+    last_read_message_id BIGINT DEFAULT 0,
     joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     muted BOOLEAN DEFAULT false,
     

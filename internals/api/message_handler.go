@@ -117,18 +117,15 @@ func (mh *MessageHandler) HandleDeleteMessage(w http.ResponseWriter, r *http.Req
 }
 
 func (mh *MessageHandler) HandleGetUnreadCount(w http.ResponseWriter, r *http.Request){
-	var params struct{
-		ChatID int64
-		UserID int64
-	}
-	err := json.NewDecoder(r.Body).Decode(&params)
-	if err != nil {
+	chatID, err := utils.ReadParam(r, "chatID")
+	userID, err2 := utils.ReadParam(r, "userID")
+	if err != nil || err2 != nil {
 		mh.logger.Printf("ERROR: decodingGetUnreadCount: %v\n",err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
 		return
 	}
 
-	count, err := mh.store.GetUnreadCount(params.ChatID, params.UserID)
+	count, err := mh.store.GetUnreadCount(chatID, userID)
 	if err != nil {
 		mh.logger.Printf("ERROR: getUnreadCount: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to retrieve unread count"})
