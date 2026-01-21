@@ -210,7 +210,7 @@ func (pg *PostgresUserStore) GetUserToken(plainTextPassword string) (*User, erro
 		SELECT u.id, u.username, u.email, u.password_hash, u.avatar_url, u.bio, u.last_seen_at, u.created_at, u.updated_at
 		FROM users u
 		INNER JOIN tokens t ON t.user_id = u.id
-		WHERE t.token_hash = $1 AND t.expiry > $3
+		WHERE t.token_hash = $1 AND t.expires_at > $2
 	`
 
 	user := &User{
@@ -237,5 +237,5 @@ func (pg *PostgresUserStore) GetUserToken(plainTextPassword string) (*User, erro
 		return nil, err
 	}
 
-	return user, err
+	return user, nil 
 }

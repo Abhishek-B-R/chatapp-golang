@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -26,8 +27,10 @@ func NewTokenHandler(tokenStore store.TokenStore, userStore store.UserStore, log
 }
 
 func (th *TokenHandler) HandleCreateToken(w http.ResponseWriter, r *http.Request){
+	defer r.Body.Close()
 	var req createTokenRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
+
 	if err != nil {
 		th.logger.Printf("ERROR: createTokenRequest: %v", err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request payload"})
@@ -37,7 +40,7 @@ func (th *TokenHandler) HandleCreateToken(w http.ResponseWriter, r *http.Request
 	user, err := th.userStore.GetUserByUsername(req.UserName)
 	if err != nil || user == nil {
 		th.logger.Printf("ERROR: GetUserByUsername: %v", err)
-		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"internal server error"})
+		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"internal server error"})
 		return
 	}
 
@@ -45,9 +48,11 @@ func (th *TokenHandler) HandleCreateToken(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		th.logger.Printf("ERROR: PasswordHash.Matches %v",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"internal server error"})
+		return
 	}
 
 	if !passwordsDoMatch {
+		fmt.Println()
 		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"invalid credentials"})
 		return
 	}

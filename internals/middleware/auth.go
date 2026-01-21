@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -34,7 +35,7 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler{
 		// in this anonymous fn, we can interject any incoming requests to our server
 
 		w.Header().Add("Vary","Authorization")
-		authHeader := r.Header.Get("Authentication")
+		authHeader := r.Header.Get("Authorization")
 
 		if authHeader == "" {
 			utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"missing authorization header"})
@@ -51,6 +52,7 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler{
 
 		user, err := um.UserStore.GetUserToken(token)
 		if err != nil {
+			fmt.Println(err)
 			utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"invalid or expired token"})
 			return
 		}

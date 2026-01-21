@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/Abhishek-B-R/chat-app-golang/internals/api"
+	"github.com/Abhishek-B-R/chat-app-golang/internals/middleware"
 	"github.com/Abhishek-B-R/chat-app-golang/internals/store"
 	"github.com/Abhishek-B-R/chat-app-golang/migrations"
 )
@@ -19,6 +20,8 @@ type Application struct{
 	ChatMemberHandler *api.ChatMemberHandler
 	UserHandler *api.UserHandler
 	TokenHandler *api.TokenHandler
+	
+	UserMiddleware middleware.UserMiddleware
 	DB *sql.DB
 }
 
@@ -47,6 +50,8 @@ func NewApplication() (*Application, error){
 	userHandler := api.NewUserHandler(userStore, logger)
 	tokenHandler := api.NewTokenHandler(tokenStore, userStore, logger)
 
+	middlewareHandler := middleware.UserMiddleware{UserStore: userStore}
+
 	app := &Application{
 		Logger: logger,
 		ChatHandler: chatHandler,
@@ -54,6 +59,7 @@ func NewApplication() (*Application, error){
 		ChatMemberHandler: chatMemberHandler,
 		UserHandler: userHandler,
 		TokenHandler: tokenHandler,
+		UserMiddleware: middlewareHandler,
 		DB: pgDB,
 	}
 	return app, nil
