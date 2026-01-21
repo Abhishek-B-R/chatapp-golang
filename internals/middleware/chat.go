@@ -1,39 +1,54 @@
 package middleware
 
-// import (
-// 	"net/http"
+import (
+	"context"
+	"net/http"
 
-// 	"github.com/Abhishek-B-R/chat-app-golang/internals/store"
-// 	"github.com/Abhishek-B-R/chat-app-golang/internals/utils"
-// )
+	"github.com/Abhishek-B-R/chat-app-golang/internals/store"
+	"github.com/Abhishek-B-R/chat-app-golang/internals/utils"
+)
 
-// type ChatMiddleware struct{
-// 	chatMemberStore store.ChatMemberStore
-// }
+type ChatMiddleware struct{
+	ChatMemberStore store.ChatMemberStore
+}
 
-// func NewChatMiddleware(cms store.ChatMemberStore) *ChatMiddleware {
-// 	return &ChatMiddleware{chatMemberStore: cms}
-// }
+type chatContextKey string
+const ChatContextKey = chatContextKey("chat")
 
-// func (m *ChatMiddleware) RequireMembership(next http.Handler) http.Handler {
-// 	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request){
-// 		user := r.Context().Value("user").(*store.User)
-// 		chatID, err := utils.ReadParam(r, "chatID")
+func SetChatMembership(r *http.Request, chatMember *store.ChatMember) *http.Request {
+	ctx := context.WithValue(r.Context(), ChatContextKey, chatMember)
+	return r.WithContext(ctx)
+}
 
-// 		if err != nil {
-// 			utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid chat ID"})
-// 			return
-// 		}
+func GetChatMembership(r *http.Request) *store.ChatMember {
+	chatMember, ok := r.Context().Value(ChatContextKey).(*store.ChatMember)
+	if !ok {
+		panic("missing chat member in request")
+	}
+	return chatMember
+}
 
-// 				// Check if user is a member
-// 		isMember, err := m.chatMemberStore.IsMember(chatID, user.ID)
-// 		if err != nil || !isMember {
-// 			utils.WriteJSON(w, http.StatusForbidden, utils.Envelope{"error": "you are not a member of this chat"})
-// 			return
-// 		}
-		
-// 		// Add chatID to context for convenience
-// 		ctx := context.WithValue("chatID", chatID)
-// 		next.ServeHTTP(w, r.WithContext(ctx))
-// 	})
-// }
+func (cm *ChatMiddleware) RequireMembership(next http.Handler) http.Handler{
+	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request){
+		user := r.Context().Value("user").(*store.User)
+		if user == nil {
+			utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"signin to continue"})
+			return
+		}
+
+		chatID, err := utils.ReadParam(r,"chatID")
+		if err != nil {
+			utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "invalid chat ID"})
+			return
+		}
+
+		isMember, err := cm.ChatMemberStore.IsMember(chatID, user.ID)
+		if err != nil || !isMember {
+			utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"you are not a member of this chat"})
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), "chatID", chatID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
