@@ -114,11 +114,11 @@ func (pg *PostgresUserStore) GetUserByEmail(email string) (*User, error) {
 func (pg *PostgresUserStore) GetUserByUsername(username string) (*User, error) {
 	var user User;
 	query := `
-		SELECT username, email, avatar_url, bio, created_at FROM users
+		SELECT id, username, email, password_hash, avatar_url, bio, created_at FROM users
 		WHERE username = $1
 	`
 
-	err := pg.db.QueryRow(query, username).Scan(&user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt)
+	err := pg.db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.AvatarURL, &user.Bio, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
