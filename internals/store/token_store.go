@@ -29,7 +29,7 @@ type TokenStore interface {
         userId int64,
         ttl time.Duration,
     ) (*tokens.Token, error)
-    DeleteAllTokensForUser(userID int) error
+    DeleteAllTokensForUser(userID int64) error
 }
 
 func (pg *PostgresTokenStore) CreateNewToken(userId int64, ttl time.Duration) (*tokens.Token, error) {
@@ -52,7 +52,7 @@ func (pg *PostgresTokenStore) Insert(token *tokens.Token) error {
 	return err
 }
 
-func (t *PostgresTokenStore) DeleteAllTokensForUser(userId int) error {
+func (t *PostgresTokenStore) DeleteAllTokensForUser(userId int64) error {
 	query := `
 	DELETE FROM tokens
 	WHERE user_id = $1

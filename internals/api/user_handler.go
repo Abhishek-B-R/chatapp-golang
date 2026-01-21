@@ -148,6 +148,48 @@ func (uh *UserHandler) HandleUpdateLastSeen(w http.ResponseWriter, r *http.Reque
 	utils.WriteJSON(w, http.StatusOK, utils.Envelope{})
 }
 
+func (uh *UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
+	var user *store.User;
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		uh.logger.Printf("ERROR: handleUpdateUser: %v",err)
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid credentials sent"})
+		return
+	}
+
+	err = uh.userStore.UpdateUser(user)
+	if err != nil {
+		uh.logger.Printf("ERROR: updating user credentials : %v",err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"internal server error"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"user":user})
+}
+
+func (uh *UserHandler) HandleUpdateUserPassword(w http.ResponseWriter, r *http.Request){
+	var password struct{
+		password string
+	}
+	err := json.NewDecoder(r.Body).Decode(&password)
+
+	userID, err2 := utils.ReadParam(r, "userID")
+	if err != nil || err2 != nil{
+		uh.logger.Printf("ERROR: handleUpdateUserPassword: %v",err)
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid credentials sent"})
+		return
+	}
+
+	err = uh.userStore.UpdateUserPassword(password.password, userID)
+	if err != nil {
+		uh.logger.Printf("ERROR: updating user password: %v",err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"internal server error"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"msg":"updated password of this user, your tokens are been revoked, please authenticate again to continue"})
+}
+
 func (h *UserHandler) validateRegisterRequest(req *registeredUserRequest) error {
 	if req.Username == "" {
 		return errors.New("username is required")

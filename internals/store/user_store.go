@@ -67,6 +67,8 @@ type UserStore interface {
     GetUserByUsername(username string) (*User, error)
     UpdateLastSeen(userID int64) error
 	UpdateUser(user *User) error
+	UpdateUserPassword(password string,userID int64) error
+	GetUserToken(plainTextPassword string) (*User, error) 
 }
 
 func (pg *PostgresUserStore) CreateUser(user *User) error {
@@ -151,21 +153,54 @@ func (pg *PostgresUserStore) UpdateUser(user *User) error {
 	return err
 }
 
-func (pg *PostgresUserStore) UpdateUserPassword(password string) error {
-	query := `
+func (pg *PostgresUserStore) UpdateUserPassword(password string, userID int64) error {
+	tx, err := pg.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	q1 := `
 		UPDATE users
-		SET username = $1, email = $2, avatar_url = $3, bio = $4, last_seen_at = NOW()
-		WHERE id = $5;
+		SET password_hash = $1
+		WHERE id = $2;
 	`
 
+	q2 := `
+		DELETE FROM tokens
+		WHERE user_id = $1
+	`
 	
 	hash, err := bcrypt.GenerateFromPassword([]byte(password),12)
 	if err != nil {
 		return err
 	}
 	
-	_, err = pg.db.Exec(query, hash)
-	return err
+	res, err := tx.Exec(q1, string(hash), userID)
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	_, err = tx.Exec(q2, userID)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (pg *PostgresUserStore) GetUserToken(plainTextPassword string) (*User, error) {
