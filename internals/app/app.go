@@ -18,6 +18,7 @@ type Application struct{
 	MessageHandler *api.MessageHandler
 	ChatMemberHandler *api.ChatMemberHandler
 	UserHandler *api.UserHandler
+	TokenHandler *api.TokenHandler
 	DB *sql.DB
 }
 
@@ -38,11 +39,13 @@ func NewApplication() (*Application, error){
 	messageStore := store.NewPostgresMessageStore(pgDB)
 	chatMemberStore := store.NewPostgresChatMemberStore(pgDB)
 	userStore := store.NewPostgresUserStore(pgDB)
+	tokenStore := store.NewPostgresTokenStore(pgDB)
 
 	chatHandler := api.NewChatHandler(chatStore, logger)
 	messageHandler := api.NewMessageHandler(messageStore, logger)
 	chatMemberHandler := api.NewChatMemberHandler(chatMemberStore, logger)
 	userHandler := api.NewUserHandler(userStore, logger)
+	tokenHandler := api.NewTokenHandler(tokenStore, userStore, logger)
 
 	app := &Application{
 		Logger: logger,
@@ -50,6 +53,7 @@ func NewApplication() (*Application, error){
 		MessageHandler: messageHandler,
 		ChatMemberHandler: chatMemberHandler,
 		UserHandler: userHandler,
+		TokenHandler: tokenHandler,
 		DB: pgDB,
 	}
 	return app, nil

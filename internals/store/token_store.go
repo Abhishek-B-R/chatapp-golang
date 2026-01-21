@@ -45,7 +45,7 @@ func (pg *PostgresTokenStore) CreateNewToken(userId int64, ttl time.Duration) (*
 func (pg *PostgresTokenStore) Insert(token *tokens.Token) error {
 	query := `
 		INSERT INTO tokens (user_id, token_hash, expires_at, created_at)
-		VALUES user_id = $1, token_hash = $2, expires_at $3, created_at = NOW()
+		VALUES ($1, $2, $3, NOW())
 	`
 
 	_, err := pg.db.Exec(query, token.UserID, token.Hash, token.ExpiresAt)

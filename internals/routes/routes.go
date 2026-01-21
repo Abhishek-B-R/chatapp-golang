@@ -34,6 +34,7 @@ func SetupRoutes(app *app.Application) *chi.Mux{
 	r.Delete("/message/{msgID}", app.MessageHandler.HandleDeleteMessage)
 	r.Get("/messages/unread/{chatID}/{userID}",app.MessageHandler.HandleGetUnreadCount)
 
+	r.Post("/tokens/authentication",app.TokenHandler.HandleCreateToken)
 	r.Get("/health",app.HealthCheck)
 	return r
 }
