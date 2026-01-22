@@ -22,6 +22,8 @@ type Application struct{
 	TokenHandler *api.TokenHandler
 	
 	UserMiddleware middleware.UserMiddleware
+	ChatMiddleware middleware.ChatMiddleware
+	MessageMiddleware middleware.MessageMiddleware
 	DB *sql.DB
 }
 
@@ -50,7 +52,9 @@ func NewApplication() (*Application, error){
 	userHandler := api.NewUserHandler(userStore, logger)
 	tokenHandler := api.NewTokenHandler(tokenStore, userStore, logger)
 
-	middlewareHandler := middleware.UserMiddleware{UserStore: userStore}
+	userMiddlewareHandler := middleware.UserMiddleware{UserStore: userStore}
+	chatMiddlewareHandler := middleware.ChatMiddleware{ChatMemberStore: chatMemberStore}
+	messageMiddlewareHandler := middleware.MessageMiddleware{MessageStore: messageStore, ChatMemberStore: chatMemberStore}
 
 	app := &Application{
 		Logger: logger,
@@ -59,7 +63,9 @@ func NewApplication() (*Application, error){
 		ChatMemberHandler: chatMemberHandler,
 		UserHandler: userHandler,
 		TokenHandler: tokenHandler,
-		UserMiddleware: middlewareHandler,
+		UserMiddleware: userMiddlewareHandler,
+		ChatMiddleware: chatMiddlewareHandler,
+		MessageMiddleware: messageMiddlewareHandler,
 		DB: pgDB,
 	}
 	return app, nil

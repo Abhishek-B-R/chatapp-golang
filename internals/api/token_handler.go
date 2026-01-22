@@ -37,7 +37,7 @@ func (th *TokenHandler) HandleCreateToken(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	user, err := th.userStore.GetUserByUsername(req.UserName)
+	user, err := th.userStore.GetUserByUsername(r.Context(), req.UserName)
 	if err != nil || user == nil {
 		th.logger.Printf("ERROR: GetUserByUsername: %v", err)
 		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"internal server error"})

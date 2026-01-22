@@ -50,7 +50,7 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler{
 
 		token := parts[1]
 
-		user, err := um.UserStore.GetUserToken(token)
+		user, err := um.UserStore.GetUserToken(r.Context(), token)
 		if err != nil {
 			fmt.Println(err)
 			utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"invalid or expired token"})

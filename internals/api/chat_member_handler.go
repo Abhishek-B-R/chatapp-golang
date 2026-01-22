@@ -134,16 +134,18 @@ func (cmh *ChatMemberHandler) HandleIsMember(w http.ResponseWriter, r *http.Requ
 
 func (cmh *ChatMemberHandler) HandleUpdateLastRead(w http.ResponseWriter, r *http.Request) {
 	var params struct{
-		ChatID, UserID, MessageID int64
+		UserID, MessageID int64
 	}
 	err := json.NewDecoder(r.Body).Decode(&params)
-	if err != nil {
+
+	ChatID, err2 := utils.ReadParam(r, "chatID")
+	if err != nil || err2 != nil {
 		cmh.logger.Printf("ERROR: decodingUpdateLastRead: %v\n",err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
 		return
 	}
 
-	err = cmh.chatMemberStore.UpdateLastRead(params.ChatID, params.UserID, params.MessageID)
+	err = cmh.chatMemberStore.UpdateLastRead(ChatID, params.UserID, params.MessageID)
 	if err != nil {
 		cmh.logger.Printf("ERROR: updateLastRead: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to update last read"})

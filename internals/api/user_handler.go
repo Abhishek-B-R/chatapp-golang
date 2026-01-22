@@ -66,7 +66,7 @@ func (uh *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = uh.userStore.CreateUser(user)
+	err = uh.userStore.CreateUser(r.Context(), user)
 	if err != nil {
 		uh.logger.Printf("ERROR: registering user %v",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"internal server error"})
@@ -84,7 +84,7 @@ func (uh *UserHandler) HandleGetUserByID(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	user, err := uh.userStore.GetUserByID(userID)
+	user, err := uh.userStore.GetUserByID(r.Context(), userID)
 	if err != nil {
 		uh.logger.Printf("ERROR: getUserByID: %v\n", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to get user by id"})
@@ -102,7 +102,7 @@ func (uh *UserHandler) HandlerGetUserByEmail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	user, err := uh.userStore.GetUserByEmail(email)
+	user, err := uh.userStore.GetUserByEmail(r.Context(), email)
 	if err != nil {
 		uh.logger.Printf("ERROR: getUserByEmail: %v\n", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to get user by email"})
@@ -120,7 +120,7 @@ func (uh *UserHandler) HandleGetUserByUsername(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	user, err := uh.userStore.GetUserByUsername(username)
+	user, err := uh.userStore.GetUserByUsername(r.Context(), username)
 	if err != nil {
 		uh.logger.Printf("ERROR: getUserByUsername: %v\n", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to get user by email"})
@@ -131,14 +131,14 @@ func (uh *UserHandler) HandleGetUserByUsername(w http.ResponseWriter, r *http.Re
 }
 
 func (uh *UserHandler) HandleUpdateLastSeen(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.ReadParam(r, "userID")
-	if err != nil {
-		uh.logger.Printf("ERROR: decodingUpdateLastSeen: %v\n", err)
-		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"invalid request sent"})
+	authenticatedUser, ok := r.Context().Value("user").(*store.User)
+	if !ok {
+		uh.logger.Printf("ERROR: user not found in context")
+		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"authentication required"})
 		return
 	}
 
-	err = uh.userStore.UpdateLastSeen(userID)
+	err := uh.userStore.UpdateLastSeen(r.Context(), authenticatedUser.ID)
 	if err != nil {
 		uh.logger.Printf("ERROR: updateLastSeen: %v\n", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to update last seen"})
@@ -149,22 +149,21 @@ func (uh *UserHandler) HandleUpdateLastSeen(w http.ResponseWriter, r *http.Reque
 }
 
 func (uh *UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
-	var user *store.User;
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
-		uh.logger.Printf("ERROR: handleUpdateUser: %v",err)
-		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid credentials sent"})
+	authenticatedUser, ok := r.Context().Value("user").(*store.User)
+	if !ok {
+		uh.logger.Printf("ERROR: user not found in context")
+		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"authentication required"})
 		return
 	}
 
-	err = uh.userStore.UpdateUser(user)
+	err := uh.userStore.UpdateUser(r.Context(), authenticatedUser)
 	if err != nil {
 		uh.logger.Printf("ERROR: updating user credentials : %v",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"internal server error"})
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"user":user})
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"user":authenticatedUser})
 }
 
 func (uh *UserHandler) HandleUpdateUserPassword(w http.ResponseWriter, r *http.Request){
@@ -180,7 +179,7 @@ func (uh *UserHandler) HandleUpdateUserPassword(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err = uh.userStore.UpdateUserPassword(password.password, userID)
+	err = uh.userStore.UpdateUserPassword(r.Context(), password.password, userID)
 	if err != nil {
 		uh.logger.Printf("ERROR: updating user password: %v",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"internal server error"})

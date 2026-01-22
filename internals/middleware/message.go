@@ -9,8 +9,8 @@ import (
 )
 
 type MessageMiddleware struct{
-	messageStore store.MessageStore
-	chatMemberStore store.ChatMemberStore
+	MessageStore store.MessageStore
+	ChatMemberStore store.ChatMemberStore
 }
 
 type messageContextKey string
@@ -44,13 +44,13 @@ func (mm *MessageMiddleware) RequireAccess(next http.Handler) http.Handler {
 			return
 		}
 
-		msg, err := mm.messageStore.GetMessage(messageID)
+		msg, err := mm.MessageStore.GetMessage(messageID)
 		if err != nil {
 			utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error": "message not found"})
 			return
 		}
 
-		isMember, err := mm.chatMemberStore.IsMember(msg.ChatID, user.ID)
+		isMember, err := mm.ChatMemberStore.IsMember(msg.ChatID, user.ID)
 		if err != nil || !isMember {
 			utils.WriteJSON(w, http.StatusForbidden, utils.Envelope{"error":"access denied"})
 			return

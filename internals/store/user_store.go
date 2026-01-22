@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"errors"
@@ -61,17 +62,17 @@ func NewPostgresUserStore(db *sql.DB) *PostgresUserStore{
 }
 
 type UserStore interface {
-	CreateUser(user *User) error
-    GetUserByID(id int64) (*User, error)
-    GetUserByEmail(email string) (*User, error)
-    GetUserByUsername(username string) (*User, error)
-    UpdateLastSeen(userID int64) error
-	UpdateUser(user *User) error
-	UpdateUserPassword(password string,userID int64) error
-	GetUserToken(plainTextPassword string) (*User, error) 
+	CreateUser(ctx context.Context, user *User) error
+    GetUserByID(ctx context.Context, id int64) (*User, error)
+    GetUserByEmail(ctx context.Context, email string) (*User, error)
+    GetUserByUsername(ctx context.Context, username string) (*User, error)
+    UpdateLastSeen(ctx context.Context, userID int64) error
+	UpdateUser(ctx context.Context, user *User) error
+	UpdateUserPassword(ctx context.Context, password string,userID int64) error
+	GetUserToken(ctx context.Context, plainTextPassword string) (*User, error) 
 }
 
-func (pg *PostgresUserStore) CreateUser(user *User) error {
+func (pg *PostgresUserStore) CreateUser(ctx context.Context, user *User) error {
 	query := `
 	INSERT INTO users (username, email, password_hash, avatar_url, bio)
 	VALUES ($1, $2, $3, $4, $5)
@@ -85,7 +86,7 @@ func (pg *PostgresUserStore) CreateUser(user *User) error {
 	return nil
 }
 
-func (pg *PostgresUserStore) GetUserByID(id int64) (*User, error) {
+func (pg *PostgresUserStore) GetUserByID(ctx context.Context, id int64) (*User, error) {
 	var user User;
 	query := `
 		SELECT username, email, avatar_url, bio, created_at FROM users
@@ -99,7 +100,7 @@ func (pg *PostgresUserStore) GetUserByID(id int64) (*User, error) {
 	return &user, nil
 }
 
-func (pg *PostgresUserStore) GetUserByEmail(email string) (*User, error) {
+func (pg *PostgresUserStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var user User;
 	query := `
 		SELECT username, email, avatar_url, bio, created_at FROM users
@@ -113,7 +114,7 @@ func (pg *PostgresUserStore) GetUserByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-func (pg *PostgresUserStore) GetUserByUsername(username string) (*User, error) {
+func (pg *PostgresUserStore) GetUserByUsername(ctx context.Context, username string) (*User, error) {
 	var user User;
 	query := `
 		SELECT id, username, email, password_hash, avatar_url, bio, created_at FROM users
@@ -127,7 +128,7 @@ func (pg *PostgresUserStore) GetUserByUsername(username string) (*User, error) {
 	return &user, nil
 }
 
-func (pg *PostgresUserStore) UpdateLastSeen(userID int64) error {
+func (pg *PostgresUserStore) UpdateLastSeen(ctx context.Context, userID int64) error {
 	query := `
 		UPDATE users
 		SET last_seen_at = $1
@@ -142,7 +143,7 @@ func (pg *PostgresUserStore) UpdateLastSeen(userID int64) error {
 	return nil
 }
 
-func (pg *PostgresUserStore) UpdateUser(user *User) error {
+func (pg *PostgresUserStore) UpdateUser(ctx context.Context, user *User) error {
 	query := `
 		UPDATE users
 		SET username = $1, email = $2, avatar_url = $3, bio = $4, last_seen_at = NOW(), updated_at = NOW()
@@ -153,7 +154,7 @@ func (pg *PostgresUserStore) UpdateUser(user *User) error {
 	return err
 }
 
-func (pg *PostgresUserStore) UpdateUserPassword(password string, userID int64) error {
+func (pg *PostgresUserStore) UpdateUserPassword(ctx context.Context, password string, userID int64) error {
 	tx, err := pg.db.Begin()
 	if err != nil {
 		return err
@@ -203,7 +204,7 @@ func (pg *PostgresUserStore) UpdateUserPassword(password string, userID int64) e
 	return nil
 }
 
-func (pg *PostgresUserStore) GetUserToken(plainTextPassword string) (*User, error) {
+func (pg *PostgresUserStore) GetUserToken(ctx context.Context, plainTextPassword string) (*User, error) {
 	tokenHash := sha256.Sum256([]byte(plainTextPassword))
 
 	query := `
