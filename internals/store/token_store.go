@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -24,25 +25,26 @@ func NewPostgresTokenStore(db *sql.DB) *PostgresTokenStore {
 }
 
 type TokenStore interface {
-    Insert(token *tokens.Token) error
+    Insert(ctx context.Context, token *tokens.Token) error
     CreateNewToken(
+		ctx context.Context, 
         userId int64,
         ttl time.Duration,
     ) (*tokens.Token, error)
-    DeleteAllTokensForUser(userID int64) error
+    DeleteAllTokensForUser(ctx context.Context, userID int64) error
 }
 
-func (pg *PostgresTokenStore) CreateNewToken(userId int64, ttl time.Duration) (*tokens.Token, error) {
+func (pg *PostgresTokenStore) CreateNewToken(ctx context.Context, userId int64, ttl time.Duration) (*tokens.Token, error) {
 	tok, err := tokens.GenerateToken(userId, ttl)
 	    if err != nil {
         return nil, err
     }
 
-    err = pg.Insert(tok)
+    err = pg.Insert(ctx, tok)
     return tok, err
 }
 
-func (pg *PostgresTokenStore) Insert(token *tokens.Token) error {
+func (pg *PostgresTokenStore) Insert(ctx context.Context, token *tokens.Token) error {
 	query := `
 		INSERT INTO tokens (user_id, token_hash, expires_at, created_at)
 		VALUES ($1, $2, $3, NOW())
@@ -52,7 +54,7 @@ func (pg *PostgresTokenStore) Insert(token *tokens.Token) error {
 	return err
 }
 
-func (t *PostgresTokenStore) DeleteAllTokensForUser(userId int64) error {
+func (t *PostgresTokenStore) DeleteAllTokensForUser(ctx context.Context, userId int64) error {
 	query := `
 	DELETE FROM tokens
 	WHERE user_id = $1

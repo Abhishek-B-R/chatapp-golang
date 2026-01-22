@@ -31,7 +31,7 @@ func (ch *ChatHandler) HandleCreateChat(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	createdChat, err := ch.chatStore.CreateChat(&chat)
+	createdChat, err := ch.chatStore.CreateChat(r.Context(), &chat)
 	if err != nil {
 		ch.logger.Printf("ERROR: createChat: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"Failed to create chat"})
@@ -49,7 +49,7 @@ func (ch *ChatHandler) HandleGetUserChats(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userChats, err := ch.chatStore.GetUserChats(userID)
+	userChats, err := ch.chatStore.GetUserChats(r.Context(), userID)
 	if err != nil {
 		ch.logger.Printf("ERROR: GetUserChats: %v\n", err)
 		utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error":"internal server error"})
@@ -66,7 +66,7 @@ func (ch *ChatHandler) HandleGetChatByID(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	chat, err := ch.chatStore.GetChatByID(chatID)
+	chat, err := ch.chatStore.GetChatByID(r.Context(), chatID)
 	if err != nil {
 		ch.logger.Printf("ERROR: GetWorkoutByID: %v\n", err)
 		utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error":"internal server error"})
@@ -84,7 +84,7 @@ func (ch *ChatHandler) HandleUpdateChat(w http.ResponseWriter, r *http.Request) 
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
 	}
 
-	err = ch.chatStore.UpdateChat(&chat)
+	err = ch.chatStore.UpdateChat(r.Context(), &chat)
 	if err != nil {
 		ch.logger.Printf("ERROR: updateChat: %v\n", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to update chat"})
@@ -102,7 +102,7 @@ func (ch *ChatHandler) HandleDeleteChat(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = ch.chatStore.DeleteChat(chatID)
+	err = ch.chatStore.DeleteChat(r.Context(), chatID)
 	if err == sql.ErrNoRows {
 		ch.logger.Printf("ERROR: deleteChat: %v\n",err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"No such chat found in db"})

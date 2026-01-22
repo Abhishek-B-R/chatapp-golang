@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -61,15 +62,15 @@ func NewPostgresMessageStore(db *sql.DB) *PostgresMessageStore {
 }
 
 type MessageStore interface{
-	CreateMessage(msg *Message) error
-    GetMessage(id int64) (*Message, error)
-    GetChatMessages(chatID, limit, offset int64) (*[]Message, error)
-    UpdateMessage(msg *Message) error
-    DeleteMessage(id int64) error // soft delete
-    GetUnreadCount(chatID, userID int64) (int64, error)
+	CreateMessage(ctx context.Context, msg *Message) error
+    GetMessage(ctx context.Context, id int64) (*Message, error)
+    GetChatMessages(ctx context.Context, chatID, limit, offset int64) (*[]Message, error)
+    UpdateMessage(ctx context.Context, msg *Message) error
+    DeleteMessage(ctx context.Context, id int64) error // soft delete
+    GetUnreadCount(ctx context.Context, chatID, userID int64) (int64, error)
 }
 
-func (pg *PostgresMessageStore) CreateMessage(msg *Message) error {
+func (pg *PostgresMessageStore) CreateMessage(ctx context.Context, msg *Message) error {
 	tx, err := pg.db.Begin()
 	if err != nil {
 		return err
@@ -126,7 +127,7 @@ func (pg *PostgresMessageStore) CreateMessage(msg *Message) error {
 	return nil
 }
 
-func (pg *PostgresMessageStore) GetMessage(msgID int64) (*Message, error) {
+func (pg *PostgresMessageStore) GetMessage(ctx context.Context, msgID int64) (*Message, error) {
 	var msg Message;
 	q1 := `
 		SELECT
@@ -166,7 +167,7 @@ func (pg *PostgresMessageStore) GetMessage(msgID int64) (*Message, error) {
 	return &msg, nil
 }
 
-func (pg *PostgresMessageStore) GetChatMessages(chatID, limit, offset int64) (*[]Message, error) {
+func (pg *PostgresMessageStore) GetChatMessages(ctx context.Context, chatID, limit, offset int64) (*[]Message, error) {
 	q1 := `
 		SELECT
 			id,
@@ -247,7 +248,7 @@ func (pg *PostgresMessageStore) GetChatMessages(chatID, limit, offset int64) (*[
 	return &msgs, nil
 }
 
-func (pg *PostgresMessageStore) UpdateMessage(msg *Message) error {
+func (pg *PostgresMessageStore) UpdateMessage(ctx context.Context, msg *Message) error {
 	query := `
 		UPDATE messages
         SET content = $1, edited_at = NOW()
@@ -264,7 +265,7 @@ func (pg *PostgresMessageStore) UpdateMessage(msg *Message) error {
 	return err
 }
 
-func (pg *PostgresMessageStore) DeleteMessage(msgID int64) error {
+func (pg *PostgresMessageStore) DeleteMessage(ctx context.Context, msgID int64) error {
 	query := `
 		UPDATE messages
 		SET deleted_at = NOW()
@@ -278,7 +279,7 @@ func (pg *PostgresMessageStore) DeleteMessage(msgID int64) error {
 	return nil
 }
 
-func (pg *PostgresMessageStore) GetUnreadCount(chatID, userID int64) (int64, error) {
+func (pg *PostgresMessageStore) GetUnreadCount(ctx context.Context, chatID, userID int64) (int64, error) {
 	tx, err := pg.db.Begin()
 	if err != nil {
 		return 0, err

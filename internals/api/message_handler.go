@@ -30,7 +30,7 @@ func (mh *MessageHandler) HandleCreateMessage(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = mh.store.CreateMessage(&msg)
+	err = mh.store.CreateMessage(r.Context(), &msg)
 	if err != nil {
 		mh.logger.Printf("ERROR: createMessage: %v\n", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to create message"})
@@ -48,7 +48,7 @@ func (mh *MessageHandler) HandleGetMessage(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	message, err := mh.store.GetMessage(msgID)
+	message, err := mh.store.GetMessage(r.Context(), msgID)
 	if err != nil {
 		mh.logger.Printf("ERROR: getMessage: %v\n", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to get message"})
@@ -69,7 +69,7 @@ func (mh *MessageHandler) HandleGetChatMessages(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	messages, err := mh.store.GetChatMessages(chatID, limit, offset)
+	messages, err := mh.store.GetChatMessages(r.Context(), chatID, limit, offset)
 	if err != nil {
 		mh.logger.Printf("ERROR: getChatMessages: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to get chat messages"})
@@ -88,7 +88,7 @@ func (mh *MessageHandler) HandleUpdateMessage(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = mh.store.UpdateMessage(&msg)
+	err = mh.store.UpdateMessage(r.Context(), &msg)
 	if err != nil {
 		mh.logger.Printf("ERROR: updateMessage: %v\n", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to update message"})
@@ -106,7 +106,7 @@ func (mh *MessageHandler) HandleDeleteMessage(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = mh.store.DeleteMessage(id)
+	err = mh.store.DeleteMessage(r.Context(), id)
 	if err != nil {
 		mh.logger.Printf("ERROR: deleteMessage: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to delete message"})
@@ -125,7 +125,7 @@ func (mh *MessageHandler) HandleGetUnreadCount(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	count, err := mh.store.GetUnreadCount(chatID, userID)
+	count, err := mh.store.GetUnreadCount(r.Context(), chatID, userID)
 	if err != nil {
 		mh.logger.Printf("ERROR: getUnreadCount: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to retrieve unread count"})

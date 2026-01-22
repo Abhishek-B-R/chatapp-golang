@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -46,15 +47,15 @@ func NewPostgresChatMemberStore(db *sql.DB) *PostgresChatMemberStore{
 }
 
 type ChatMemberStore interface {
-	AddMember(chatID, userID int64, role string) error
-    RemoveMember(chatID, userID int64) error
-    GetChatMembers(chatID int64) ([]*ChatMemberWithUser, error)
-    GetUserRole(chatID, userID int64) (string, error)
-    IsMember(chatID, userID int64) (bool, error)
-    UpdateLastRead(chatID, userID, messageID int64) error
+	AddMember(ctx context.Context, chatID, userID int64, role string) error
+    RemoveMember(ctx context.Context, chatID, userID int64) error
+    GetChatMembers(ctx context.Context, chatID int64) ([]*ChatMemberWithUser, error)
+    GetUserRole(ctx context.Context, chatID, userID int64) (string, error)
+    IsMember(ctx context.Context, chatID, userID int64) (bool, error)
+    UpdateLastRead(ctx context.Context, chatID, userID, messageID int64) error
 }
 
-func (pg *PostgresChatMemberStore) AddMember(chatID, userID int64, role string) error {
+func (pg *PostgresChatMemberStore) AddMember(ctx context.Context, chatID, userID int64, role string) error {
 	role = strings.TrimSpace(strings.ToLower(role))
 
 	switch role {
@@ -76,7 +77,7 @@ func (pg *PostgresChatMemberStore) AddMember(chatID, userID int64, role string) 
 	return nil
 }
 
-func (pg *PostgresChatMemberStore) RemoveMember(chatID, userID int64) error {
+func (pg *PostgresChatMemberStore) RemoveMember(ctx context.Context, chatID, userID int64) error {
 	query := `
 		DELETE FROM chat_members 
 		WHERE chat_id = $1 AND user_id = $2
@@ -98,7 +99,7 @@ func (pg *PostgresChatMemberStore) RemoveMember(chatID, userID int64) error {
 	return nil
 }
 
-func (pg *PostgresChatMemberStore) GetChatMembers(chatID int64) ([]*ChatMemberWithUser, error) {
+func (pg *PostgresChatMemberStore) GetChatMembers(ctx context.Context, chatID int64) ([]*ChatMemberWithUser, error) {
 	query := `
 		SELECT 
 			cm.chat_id,
@@ -141,7 +142,7 @@ func (pg *PostgresChatMemberStore) GetChatMembers(chatID int64) ([]*ChatMemberWi
 	return members, rows.Err()
 }
 
-func (pg *PostgresChatMemberStore) GetUserRole(chatID, userID int64) (string, error) {
+func (pg *PostgresChatMemberStore) GetUserRole(ctx context.Context, chatID, userID int64) (string, error) {
 	role := ""
 	query := `
 		SELECT role FROM chat_members
@@ -156,7 +157,7 @@ func (pg *PostgresChatMemberStore) GetUserRole(chatID, userID int64) (string, er
 	return role, nil
 }
 
-func (pg *PostgresChatMemberStore) IsMember(chatID, userID int64) (bool, error) {
+func (pg *PostgresChatMemberStore) IsMember(ctx context.Context, chatID, userID int64) (bool, error) {
 	role := ""
 	query := `
 		SELECT role FROM chat_members
@@ -174,7 +175,7 @@ func (pg *PostgresChatMemberStore) IsMember(chatID, userID int64) (bool, error) 
 	return true, nil
 }
 
-func (pg *PostgresChatMemberStore) UpdateLastRead(chatID, userID, messageID int64) error {
+func (pg *PostgresChatMemberStore) UpdateLastRead(ctx context.Context, chatID, userID, messageID int64) error {
 	query := `
 		UPDATE chat_members
 		SET last_read_message_id = $1

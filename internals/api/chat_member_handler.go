@@ -34,7 +34,7 @@ func (cmh *ChatMemberHandler) HandleAddMember(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = cmh.chatMemberStore.AddMember(params.ChatID, params.UserID, params.Role)
+	err = cmh.chatMemberStore.AddMember(r.Context(), params.ChatID, params.UserID, params.Role)
 	if err != nil {
 		cmh.logger.Printf("ERROR: addMember: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to add member"})
@@ -59,7 +59,7 @@ func (cmh *ChatMemberHandler) HandleRemoveMember(w http.ResponseWriter, r *http.
 		return
 	}
 
-	err = cmh.chatMemberStore.RemoveMember(chatID, userID)
+	err = cmh.chatMemberStore.RemoveMember(r.Context(), chatID, userID)
 	if err != nil {
 		cmh.logger.Printf("ERROR: removeMember: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to remove member"})
@@ -77,7 +77,7 @@ func (cmh *ChatMemberHandler) HandleGetChatMembers(w http.ResponseWriter, r *htt
 		return
 	}
 
-	chatMembers, err := cmh.chatMemberStore.GetChatMembers(chatID)
+	chatMembers, err := cmh.chatMemberStore.GetChatMembers(r.Context(), chatID)
 	if err != nil {
 		cmh.logger.Printf("ERROR: getChatMembers: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to retrieve chat members"})
@@ -97,7 +97,7 @@ func (cmh *ChatMemberHandler) HandleGetUserRole(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	role, err := cmh.chatMemberStore.GetUserRole(chatID, userID)
+	role, err := cmh.chatMemberStore.GetUserRole(r.Context(), chatID, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error": "user is not a member of this chat"})
@@ -122,7 +122,7 @@ func (cmh *ChatMemberHandler) HandleIsMember(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	isMember, err := cmh.chatMemberStore.IsMember(chatID, userID)
+	isMember, err := cmh.chatMemberStore.IsMember(r.Context(), chatID, userID)
 	if err != nil {
 		cmh.logger.Printf("ERROR: isMember: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to retrieve is_member"})
@@ -145,7 +145,7 @@ func (cmh *ChatMemberHandler) HandleUpdateLastRead(w http.ResponseWriter, r *htt
 		return
 	}
 
-	err = cmh.chatMemberStore.UpdateLastRead(ChatID, params.UserID, params.MessageID)
+	err = cmh.chatMemberStore.UpdateLastRead(r.Context(), ChatID, params.UserID, params.MessageID)
 	if err != nil {
 		cmh.logger.Printf("ERROR: updateLastRead: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to update last read"})

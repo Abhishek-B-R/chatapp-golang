@@ -42,7 +42,7 @@ func (cm *ChatMiddleware) RequireMembership(next http.Handler) http.Handler{
 			return
 		}
 
-		isMember, err := cm.ChatMemberStore.IsMember(chatID, user.ID)
+		isMember, err := cm.ChatMemberStore.IsMember(r.Context(), chatID, user.ID)
 		if err != nil || !isMember {
 			utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"you are not a member of this chat"})
 			return

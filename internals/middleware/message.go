@@ -44,13 +44,13 @@ func (mm *MessageMiddleware) RequireAccess(next http.Handler) http.Handler {
 			return
 		}
 
-		msg, err := mm.MessageStore.GetMessage(messageID)
+		msg, err := mm.MessageStore.GetMessage(r.Context(), messageID)
 		if err != nil {
 			utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error": "message not found"})
 			return
 		}
 
-		isMember, err := mm.ChatMemberStore.IsMember(msg.ChatID, user.ID)
+		isMember, err := mm.ChatMemberStore.IsMember(r.Context(), msg.ChatID, user.ID)
 		if err != nil || !isMember {
 			utils.WriteJSON(w, http.StatusForbidden, utils.Envelope{"error":"access denied"})
 			return

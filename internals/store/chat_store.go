@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"time"
 )
@@ -24,14 +25,14 @@ func NewPostgresChatStore(db *sql.DB) *PostgresChatStore {
 }
 
 type ChatStore interface {
-	CreateChat(chat *Chat) (*Chat, error)
-	GetUserChats(userID int64) (*[]Chat, error)
-	GetChatByID(chatID int64) (*Chat, error)
-	UpdateChat(chat *Chat) error
-	DeleteChat(chatID int64) error
+	CreateChat(ctx context.Context, chat *Chat) (*Chat, error)
+	GetUserChats(ctx context.Context, userID int64) (*[]Chat, error)
+	GetChatByID(ctx context.Context, chatID int64) (*Chat, error)
+	UpdateChat(ctx context.Context, chat *Chat) error
+	DeleteChat(ctx context.Context, chatID int64) error
 }
 
-func (pg *PostgresChatStore) CreateChat(chat *Chat) (*Chat, error) {
+func (pg *PostgresChatStore) CreateChat(ctx context.Context, chat *Chat) (*Chat, error) {
 	query := `
 		INSERT INTO chats (is_group, name, created_by)
 		VALUES ($1, $2, $3)
@@ -46,7 +47,7 @@ func (pg *PostgresChatStore) CreateChat(chat *Chat) (*Chat, error) {
 	return chat, nil
 }
 
-func (pg *PostgresChatStore) UpdateChat(chat *Chat) error {
+func (pg *PostgresChatStore) UpdateChat(ctx context.Context, chat *Chat) error {
 		query := `
 		UPDATE chats
 		SET is_group = $1, name = $2, created_by = $3
@@ -57,7 +58,7 @@ func (pg *PostgresChatStore) UpdateChat(chat *Chat) error {
 	return err
 }
 
-func (pg *PostgresChatStore) DeleteChat(chatID int64) error {
+func (pg *PostgresChatStore) DeleteChat(ctx context.Context, chatID int64) error {
 	query := `
 		DELETE from chats
 		WHERE id = $1
@@ -79,7 +80,7 @@ func (pg *PostgresChatStore) DeleteChat(chatID int64) error {
 	return nil
 }
 
-func (pg *PostgresChatStore) GetChatByID(chatID int64) (*Chat, error) {
+func (pg *PostgresChatStore) GetChatByID(ctx context.Context, chatID int64) (*Chat, error) {
 	var chat Chat
 	query := `
 		SELECT id, is_group, name, created_by, last_message_at, created_at, updated_at
@@ -107,7 +108,7 @@ func (pg *PostgresChatStore) GetChatByID(chatID int64) (*Chat, error) {
 	return &chat, nil
 }
 
-func (pg *PostgresChatStore) GetUserChats(userID int64) (*[]Chat, error) {
+func (pg *PostgresChatStore) GetUserChats(ctx context.Context, userID int64) (*[]Chat, error) {
 	var chats []Chat
 	query := `
 		SELECT 
