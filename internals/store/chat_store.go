@@ -39,7 +39,7 @@ func (pg *PostgresChatStore) CreateChat(ctx context.Context, chat *Chat) (*Chat,
 		RETURNING id
 	`
 
-	err := pg.db.QueryRow(query, chat.IsGroup, chat.Name, chat.CreatedBy).Scan(&chat.ChatID)
+	err := pg.db.QueryRowContext(ctx, query, chat.IsGroup, chat.Name, chat.CreatedBy).Scan(&chat.ChatID)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (pg *PostgresChatStore) UpdateChat(ctx context.Context, chat *Chat) error {
 		RETURNING id
 	`
 
-	err := pg.db.QueryRow(query, chat.IsGroup, chat.Name, chat.CreatedBy).Scan(&chat.ChatID)
+	err := pg.db.QueryRowContext(ctx, query, chat.IsGroup, chat.Name, chat.CreatedBy).Scan(&chat.ChatID)
 	return err
 }
 
@@ -64,7 +64,7 @@ func (pg *PostgresChatStore) DeleteChat(ctx context.Context, chatID int64) error
 		WHERE id = $1
 	`
 
-	results, err := pg.db.Exec(query, chatID)
+	results, err := pg.db.ExecContext(ctx, query, chatID)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (pg *PostgresChatStore) GetChatByID(ctx context.Context, chatID int64) (*Ch
 		WHERE id = $1
 	`
 
-	err := pg.db.QueryRow(query, chatID).Scan(
+	err := pg.db.QueryRowContext(ctx, query, chatID).Scan(
 		&chat.ChatID,  
 		&chat.IsGroup, 
 		&chat.Name, 
@@ -125,7 +125,7 @@ func (pg *PostgresChatStore) GetUserChats(ctx context.Context, userID int64) (*[
 		ORDER BY c.last_message_at DESC NULLS LAST
 	`
 
-	rows, err := pg.db.Query(query, userID)
+	rows, err := pg.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}

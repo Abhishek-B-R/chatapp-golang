@@ -50,7 +50,7 @@ func (pg *PostgresTokenStore) Insert(ctx context.Context, token *tokens.Token) e
 		VALUES ($1, $2, $3, NOW())
 	`
 
-	_, err := pg.db.Exec(query, token.UserID, token.Hash, token.ExpiresAt)
+	_, err := pg.db.ExecContext(ctx, query, token.UserID, token.Hash, token.ExpiresAt)
 	return err
 }
 
@@ -60,6 +60,6 @@ func (t *PostgresTokenStore) DeleteAllTokensForUser(ctx context.Context, userId 
 	WHERE user_id = $1
 	`
 
-	_, err := t.db.Exec(query, userId)
+	_, err := t.db.ExecContext(ctx, query, userId)
 	return err
 }

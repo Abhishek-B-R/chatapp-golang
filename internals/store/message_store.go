@@ -83,7 +83,7 @@ func (pg *PostgresMessageStore) CreateMessage(ctx context.Context, msg *Message)
 		RETURNING id, created_at
 	`
 
-	err = tx.QueryRow(q1, msg.ChatID, msg.SenderID, msg.Type, msg.Content).Scan(&msg.ID, &msg.CreatedAt)
+	err = tx.QueryRowContext(ctx, q1, msg.ChatID, msg.SenderID, msg.Type, msg.Content).Scan(&msg.ID, &msg.CreatedAt)
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,8 @@ func (pg *PostgresMessageStore) CreateMessage(ctx context.Context, msg *Message)
 				a.Metadata = json.RawMessage(`{}`)
 			}
 
-			err := tx.QueryRow(
+			err := tx.QueryRowContext(
+				ctx,
 				q2,
 				msg.ID,
 				a.Type,
@@ -143,7 +144,7 @@ func (pg *PostgresMessageStore) GetMessage(ctx context.Context, msgID int64) (*M
 		FROM messages
 		WHERE id = $1
 	`
-	err := pg.db.QueryRow(q1, msgID).Scan(
+	err := pg.db.QueryRowContext(ctx, q1, msgID).Scan(
 		&msg.ID, 
 		&msg.ChatID, 
 		&msg.SenderID, 
@@ -158,7 +159,7 @@ func (pg *PostgresMessageStore) GetMessage(ctx context.Context, msgID int64) (*M
 		return nil, err
 	}
 
-	attachments, err := pg.getAttachmentsForMessages([]int64{msg.ID})
+	attachments, err := pg.getAttachmentsForMessages(ctx, []int64{msg.ID})
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +186,7 @@ func (pg *PostgresMessageStore) GetChatMessages(ctx context.Context, chatID, lim
 		LIMIT $2 OFFSET $3;
 	`
 
-	rows, err := pg.db.Query(q1, chatID, limit, offset)
+	rows, err := pg.db.QueryContext(ctx, q1, chatID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +225,7 @@ func (pg *PostgresMessageStore) GetChatMessages(ctx context.Context, chatID, lim
 	}
 
 	//fetch attachments
-	attachments, err := pg.getAttachmentsForMessages(msgIDs)
+	attachments, err := pg.getAttachmentsForMessages(ctx, msgIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +258,7 @@ func (pg *PostgresMessageStore) UpdateMessage(ctx context.Context, msg *Message)
         RETURNING id
 	`
 
-	err := pg.db.QueryRow(query, msg.Content, msg.ID).Scan(&msg.ID)
+	err := pg.db.QueryRowContext(ctx, query, msg.Content, msg.ID).Scan(&msg.ID)
 	if err == sql.ErrNoRows {	
         return errors.New("message not found or already deleted")
     }
@@ -272,7 +273,7 @@ func (pg *PostgresMessageStore) DeleteMessage(ctx context.Context, msgID int64) 
 		WHERE id = $2
 	` // not actually deleted, just marked as deleted
 
-	_, err := pg.db.Exec(query, msgID)
+	_, err := pg.db.ExecContext(ctx, query, msgID)
 	if err != nil {
 		return err
 	}
@@ -291,7 +292,7 @@ func (pg *PostgresMessageStore) GetUnreadCount(ctx context.Context, chatID, user
 		FROM chat_members
 		WHERE user_id = $1 AND chat_id = $2;
 	`
-	err = tx.QueryRow(q1, userID, chatID).Scan(&lastReadMsgID)
+	err = tx.QueryRowContext(ctx, q1, userID, chatID).Scan(&lastReadMsgID)
 	if err != nil {
 		return 0, err
 	}
@@ -301,11 +302,11 @@ func (pg *PostgresMessageStore) GetUnreadCount(ctx context.Context, chatID, user
 		SELECT COUNT(*) FROM messages
 		WHERE chat_id = $1 AND id > $2;
 	`
-	err = tx.QueryRow(q2, chatID, lastReadMsgID).Scan(&UnreadCount)
+	err = tx.QueryRowContext(ctx, q2, chatID, lastReadMsgID).Scan(&UnreadCount)
 	return UnreadCount, nil
 }
 
-func (pg *PostgresMessageStore) getAttachmentsForMessages(messageIDs []int64) ([]MessageAttachment, error) {
+func (pg *PostgresMessageStore) getAttachmentsForMessages(ctx context.Context, messageIDs []int64) ([]MessageAttachment, error) {
 	const q = `
 		SELECT
 			id,
@@ -321,7 +322,7 @@ func (pg *PostgresMessageStore) getAttachmentsForMessages(messageIDs []int64) ([
 		ORDER BY created_at ASC;
 `
 
-	rows, err := pg.db.Query(q, messageIDs)
+	rows, err := pg.db.QueryContext(ctx, q, messageIDs)
 	if err != nil {
 		return nil, err
 	}

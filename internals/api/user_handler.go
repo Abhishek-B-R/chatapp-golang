@@ -189,6 +189,24 @@ func (uh *UserHandler) HandleUpdateUserPassword(w http.ResponseWriter, r *http.R
 	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"msg":"updated password of this user, your tokens are been revoked, please authenticate again to continue"})
 }
 
+
+func (uh *UserHandler) HandleGetCurrentUser(w http.ResponseWriter, r *http.Request) {
+	authenticatedUser, ok := r.Context().Value("user").(*store.User)
+	if !ok {
+		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"authentication required"})
+		return
+	}
+
+	user, err := uh.userStore.GetCurrentUser(r.Context(), authenticatedUser.ID)
+	if err != nil {
+		uh.logger.Printf("ERROR: handleGetCurrentUser: %v",err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"unable to fetch user"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"user":user})
+}
+
 func (h *UserHandler) validateRegisterRequest(req *registeredUserRequest) error {
 	if req.Username == "" {
 		return errors.New("username is required")

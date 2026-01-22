@@ -70,6 +70,7 @@ type UserStore interface {
 	UpdateUser(ctx context.Context, user *User) error
 	UpdateUserPassword(ctx context.Context, password string,userID int64) error
 	GetUserToken(ctx context.Context, plainTextPassword string) (*User, error) 
+	GetCurrentUser(ctx context.Context, userID int64) (*User, error)
 }
 
 func (pg *PostgresUserStore) CreateUser(ctx context.Context, user *User) error {
@@ -79,7 +80,7 @@ func (pg *PostgresUserStore) CreateUser(ctx context.Context, user *User) error {
 	RETURNING id, created_at
 	`
 
-	err := pg.db.QueryRow(query, user.Username, user.Email, user.PasswordHash.hash, user.AvatarURL, user.Bio).Scan(&user.ID, &user.CreatedAt)
+	err := pg.db.QueryRowContext(ctx, query, user.Username, user.Email, user.PasswordHash.hash, user.AvatarURL, user.Bio).Scan(&user.ID, &user.CreatedAt)
 	if err != nil {
 		return err
 	}
@@ -93,7 +94,7 @@ func (pg *PostgresUserStore) GetUserByID(ctx context.Context, id int64) (*User, 
 		WHERE id = $1
 	`
 
-	err := pg.db.QueryRow(query, id).Scan(&user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt)
+	err := pg.db.QueryRowContext(ctx, query, id).Scan(&user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +108,7 @@ func (pg *PostgresUserStore) GetUserByEmail(ctx context.Context, email string) (
 		WHERE email = $1
 	`
 
-	err := pg.db.QueryRow(query, email).Scan(&user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt)
+	err := pg.db.QueryRowContext(ctx, query, email).Scan(&user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +122,7 @@ func (pg *PostgresUserStore) GetUserByUsername(ctx context.Context, username str
 		WHERE username = $1
 	`
 
-	err := pg.db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash.hash, &user.AvatarURL, &user.Bio, &user.CreatedAt)
+	err := pg.db.QueryRowContext(ctx, query, username).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash.hash, &user.AvatarURL, &user.Bio, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +137,7 @@ func (pg *PostgresUserStore) UpdateLastSeen(ctx context.Context, userID int64) e
 		AND (last_seen_at IS NULL OR last_seen_at < $1);
 	`
 
-	_, err := pg.db.Exec(query, time.Now().UTC(), userID)
+	_, err := pg.db.ExecContext(ctx, query, time.Now().UTC(), userID)
 	if err != nil {
 		return err
 	}
@@ -150,7 +151,7 @@ func (pg *PostgresUserStore) UpdateUser(ctx context.Context, user *User) error {
 		WHERE id = $5;
 	`
 
-	_, err := pg.db.Exec(query, user.Username, user.Email, user.AvatarURL, user.Bio, user.ID)
+	_, err := pg.db.ExecContext(ctx, query, user.Username, user.Email, user.AvatarURL, user.Bio, user.ID)
 	return err
 }
 
@@ -179,7 +180,7 @@ func (pg *PostgresUserStore) UpdateUserPassword(ctx context.Context, password st
 		return err
 	}
 	
-	res, err := tx.Exec(q1, string(hash), userID)
+	res, err := tx.ExecContext(ctx, q1, string(hash), userID)
 	if err != nil {
 		return err
 	}
@@ -192,7 +193,7 @@ func (pg *PostgresUserStore) UpdateUserPassword(ctx context.Context, password st
 		return sql.ErrNoRows
 	}
 
-	_, err = tx.Exec(q2, userID)
+	_, err = tx.ExecContext(ctx, q2, userID)
 	if err != nil {
 		return err
 	}
@@ -218,7 +219,7 @@ func (pg *PostgresUserStore) GetUserToken(ctx context.Context, plainTextPassword
 		PasswordHash: password{},
 	}
 
-	err := pg.db.QueryRow(query, tokenHash[:], time.Now()).Scan(
+	err := pg.db.QueryRowContext(ctx, query, tokenHash[:], time.Now()).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
@@ -239,4 +240,18 @@ func (pg *PostgresUserStore) GetUserToken(ctx context.Context, plainTextPassword
 	}
 
 	return user, nil 
+}
+
+func (pg *PostgresUserStore) GetCurrentUser(ctx context.Context, userID int64) (*User, error) {
+	query := `
+		SELECT username, email, avatar_url, bio, created_at FROM users
+		WHERE id = $1
+	`
+
+	var user User
+	err := pg.db.QueryRowContext(ctx, query, userID).Scan(&user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &user, err
 }

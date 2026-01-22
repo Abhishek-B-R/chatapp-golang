@@ -70,7 +70,7 @@ func (pg *PostgresChatMemberStore) AddMember(ctx context.Context, chatID, userID
 		VALUES ($1, $2, $3, $4)
 	`
 
-	_, err := pg.db.Exec(query, userID, chatID, role, false)
+	_, err := pg.db.ExecContext(ctx, query, userID, chatID, role, false)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (pg *PostgresChatMemberStore) RemoveMember(ctx context.Context, chatID, use
 		WHERE chat_id = $1 AND user_id = $2
 	`
 
-	results, err := pg.db.Exec(query, chatID, userID)
+	results, err := pg.db.ExecContext(ctx, query, chatID, userID)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func (pg *PostgresChatMemberStore) GetChatMembers(ctx context.Context, chatID in
 		ORDER BY cm.joined_at DESC
 	`
 	
-	rows, err := pg.db.Query(query, chatID)
+	rows, err := pg.db.QueryContext(ctx, query, chatID)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func (pg *PostgresChatMemberStore) GetUserRole(ctx context.Context, chatID, user
 		WHERE chat_id = $1 AND user_id = $2
 	`
 
-	err := pg.db.QueryRow(query, chatID, userID).Scan(&role)
+	err := pg.db.QueryRowContext(ctx, query, chatID, userID).Scan(&role)
 	if err != nil {
 		return "",err
 	}
@@ -164,7 +164,7 @@ func (pg *PostgresChatMemberStore) IsMember(ctx context.Context, chatID, userID 
 		WHERE chat_id = $1 AND user_id = $2
 	`
 
-	err := pg.db.QueryRow(query, chatID, userID).Scan(&role)
+	err := pg.db.QueryRowContext(ctx, query, chatID, userID).Scan(&role)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
@@ -183,7 +183,7 @@ func (pg *PostgresChatMemberStore) UpdateLastRead(ctx context.Context, chatID, u
 		AND (last_read_message_id IS NULL OR last_read_message_id < $1);
 	`
 
-	_, err := pg.db.Exec(query, messageID, chatID, userID)
+	_, err := pg.db.ExecContext(ctx, query, messageID, chatID, userID)
 	if err != nil {
 		return err
 	}

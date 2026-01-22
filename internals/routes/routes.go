@@ -18,11 +18,11 @@ func SetupRoutes(app *app.Application) *chi.Mux{
 		r.Use(app.UserMiddleware.Authenticate)
 
 		r.Route("/users", func (r chi.Router){
-			// r.Get("/me", app.UserHandler.HandleGetCurrentUser)
+			r.Get("/me", app.UserHandler.HandleGetCurrentUser)
 			r.Put("/me", app.UserHandler.HandleUpdateUser)
 			r.Put("/me/last-seen", app.UserHandler.HandleUpdateLastSeen)
 
-			// r.Get("/search", app.UserHandler.HandleSearchUsers)
+			r.Get("/search/{username}", app.UserHandler.HandleGetUserByUsername)
 			r.Get("/{userID}", app.UserHandler.HandleGetUserByID)
 		})
 
