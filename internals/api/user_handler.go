@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 
+	"github.com/Abhishek-B-R/chat-app-golang/internals/middleware"
 	"github.com/Abhishek-B-R/chat-app-golang/internals/store"
 	"github.com/Abhishek-B-R/chat-app-golang/internals/utils"
 	"github.com/go-chi/chi"
@@ -38,6 +40,26 @@ func (uh *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		uh.logger.Printf("ERROR: decodingCreateUser: %v\n", err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
+		return
+	}
+
+	if req.Username == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "username cannot be empty"})
+		return
+	}
+
+	if len(req.Username) > 50 {
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "username too long"})
+		return
+	}
+	
+	//lowercase the username
+	req.Username = strings.ToLower(req.Username)
+
+	err = utils.ValidateEmail(req.Email)
+	if err != nil {
+		uh.logger.Printf("ERROR: invalid email: %v",err)
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid email data"})
 		return
 	}
 
@@ -114,6 +136,9 @@ func (uh *UserHandler) HandlerGetUserByEmail(w http.ResponseWriter, r *http.Requ
 
 func (uh *UserHandler) HandleGetUserByUsername(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "username")
+	//lowercase the username
+	username = strings.ToLower(username)
+	
 	if username == "" {
 		uh.logger.Printf("ERROR: decodingGetUserByUsername: Invalid username field")
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
@@ -123,7 +148,7 @@ func (uh *UserHandler) HandleGetUserByUsername(w http.ResponseWriter, r *http.Re
 	user, err := uh.userStore.GetUserByUsername(r.Context(), username)
 	if err != nil {
 		uh.logger.Printf("ERROR: getUserByUsername: %v\n", err)
-		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to get user by email"})
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to get user by username"})
 		return
 	}
 
@@ -131,7 +156,7 @@ func (uh *UserHandler) HandleGetUserByUsername(w http.ResponseWriter, r *http.Re
 }
 
 func (uh *UserHandler) HandleUpdateLastSeen(w http.ResponseWriter, r *http.Request) {
-	authenticatedUser, ok := r.Context().Value("user").(*store.User)
+	authenticatedUser, ok := middleware.GetUser(r)
 	if !ok {
 		uh.logger.Printf("ERROR: user not found in context")
 		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"authentication required"})
@@ -149,37 +174,91 @@ func (uh *UserHandler) HandleUpdateLastSeen(w http.ResponseWriter, r *http.Reque
 }
 
 func (uh *UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
-	authenticatedUser, ok := r.Context().Value("user").(*store.User)
+	authenticatedUser, ok := middleware.GetUser(r)
 	if !ok {
 		uh.logger.Printf("ERROR: user not found in context")
 		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"authentication required"})
 		return
 	}
 
-	err := uh.userStore.UpdateUser(r.Context(), authenticatedUser)
+	var updateReq struct {
+		Username  string `json:"username"`
+		Email     string `json:"email"`
+		Bio       string `json:"bio"`
+		AvatarURL string `json:"avatar_url"`
+	}
+
+
+	err := json.NewDecoder(r.Body).Decode(&updateReq)
+	if err != nil {
+		uh.logger.Printf("ERROR: decoding update request: %v", err)
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "invalid request body"})
+		return
+	}
+
+	if updateReq.Username == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "username cannot be empty"})
+		return
+	}
+
+	if len(updateReq.Username) > 50 {
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "username too long"})
+		return
+	}
+
+	err = utils.ValidateEmail(updateReq.Email)
+	if err != nil {
+		uh.logger.Printf("ERROR: invalid email: %v",err)
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "invalid email"})
+		return
+	}
+
+	updatedUser := &store.User{
+		ID:        authenticatedUser.ID,
+		Email:     updateReq.Email,
+		Username:  updateReq.Username, 
+		Bio:       updateReq.Bio,      
+		AvatarURL: updateReq.AvatarURL,
+	}
+
+	err = uh.userStore.UpdateUser(r.Context(), updatedUser)
 	if err != nil {
 		uh.logger.Printf("ERROR: updating user credentials : %v",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"internal server error"})
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"user":authenticatedUser})
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"user":updatedUser})
 }
 
 func (uh *UserHandler) HandleUpdateUserPassword(w http.ResponseWriter, r *http.Request){
+	authenticatedUser, ok := middleware.GetUser(r)
+	if !ok {
+		uh.logger.Printf("ERROR: user not found in context")
+		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"authentication required"})
+		return
+	}
+	
 	var password struct{
-		password string
+		Password string `json:"password"`
 	}
 	err := json.NewDecoder(r.Body).Decode(&password)
-
-	userID, err2 := utils.ReadParam(r, "userID")
-	if err != nil || err2 != nil{
+	if err != nil{
 		uh.logger.Printf("ERROR: handleUpdateUserPassword: %v",err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid credentials sent"})
 		return
 	}
 
-	err = uh.userStore.UpdateUserPassword(r.Context(), password.password, userID)
+	if password.Password == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"password cannot be empty"})
+		return
+	}
+	if len(password.Password) < 8 {
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"password too short"})
+		return
+	}
+
+	err = uh.userStore.UpdateUserPassword(r.Context(), password.Password, authenticatedUser.ID)
 	if err != nil {
 		uh.logger.Printf("ERROR: updating user password: %v",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"internal server error"})
@@ -191,7 +270,7 @@ func (uh *UserHandler) HandleUpdateUserPassword(w http.ResponseWriter, r *http.R
 
 
 func (uh *UserHandler) HandleGetCurrentUser(w http.ResponseWriter, r *http.Request) {
-	authenticatedUser, ok := r.Context().Value("user").(*store.User)
+	authenticatedUser, ok := middleware.GetUser(r)
 	if !ok {
 		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"authentication required"})
 		return

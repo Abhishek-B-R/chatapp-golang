@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Abhishek-B-R/chat-app-golang/internals/middleware"
 	"github.com/Abhishek-B-R/chat-app-golang/internals/store"
 	"github.com/Abhishek-B-R/chat-app-golang/internals/utils"
 )
@@ -31,7 +32,13 @@ func (ch *ChatHandler) HandleCreateChat(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	createdChat, err := ch.chatStore.CreateChat(r.Context(), &chat)
+	authenticatedUser, ok := middleware.GetUser(r)
+	if !ok {
+		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"authentication required"})
+		return
+	}
+
+	createdChat, err := ch.chatStore.CreateChat(r.Context(), &chat, authenticatedUser.ID)
 	if err != nil {
 		ch.logger.Printf("ERROR: createChat: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"Failed to create chat"})
@@ -42,19 +49,18 @@ func (ch *ChatHandler) HandleCreateChat(w http.ResponseWriter, r *http.Request) 
 }
 
 func (ch *ChatHandler) HandleGetUserChats(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.ReadParam(r, "userID")
-	if err != nil {
-		ch.logger.Printf("ERROR: readIDParam in GetUserChats: %v\n",err)
-		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid user id"})
+	authenticatedUser, ok := middleware.GetUser(r)
+	if !ok {
+		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"authentication required"})
 		return
 	}
 
-	userChats, err := ch.chatStore.GetUserChats(r.Context(), userID)
+	userChats, err := ch.chatStore.GetUserChats(r.Context(), authenticatedUser.ID)
 	if err != nil {
 		ch.logger.Printf("ERROR: GetUserChats: %v\n", err)
 		utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error":"internal server error"})
 	}
-	
+
 	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"chats":userChats})
 }
 

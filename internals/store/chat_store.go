@@ -25,36 +25,54 @@ func NewPostgresChatStore(db *sql.DB) *PostgresChatStore {
 }
 
 type ChatStore interface {
-	CreateChat(ctx context.Context, chat *Chat) (*Chat, error)
+	CreateChat(ctx context.Context, chat *Chat, userID int64) (*Chat, error)
 	GetUserChats(ctx context.Context, userID int64) (*[]Chat, error)
 	GetChatByID(ctx context.Context, chatID int64) (*Chat, error)
 	UpdateChat(ctx context.Context, chat *Chat) error
 	DeleteChat(ctx context.Context, chatID int64) error
 }
 
-func (pg *PostgresChatStore) CreateChat(ctx context.Context, chat *Chat) (*Chat, error) {
-	query := `
-		INSERT INTO chats (is_group, name, created_by)
-		VALUES ($1, $2, $3)
-		RETURNING id
-	`
+func (pg *PostgresChatStore) CreateChat(ctx context.Context, chat *Chat, userID int64) (*Chat, error) {
+	tx, err := pg.db.Begin()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
-	err := pg.db.QueryRowContext(ctx, query, chat.IsGroup, chat.Name, chat.CreatedBy).Scan(&chat.ChatID)
 	if err != nil {
 		return nil, err
 	}
 
+	q1 := `
+		INSERT INTO chats (is_group, name, created_by)
+		VALUES ($1, $2, $3)
+		RETURNING id
+	`
+	err = tx.QueryRowContext(ctx, q1, chat.IsGroup, chat.Name, userID).Scan(&chat.ChatID)
+	if err != nil {
+		return nil, err
+	}
+
+	q2 := `
+		INSERT INTO chat_members (user_id, chat_id, role, muted)
+		VALUES ($1, $2, $3, $4)
+	`
+	_, err = tx.ExecContext(ctx, q2, userID, chat.ChatID, "admin", false)
+	if err != nil {
+		return nil, err
+	}
+
+	tx.Commit()
 	return chat, nil
 }
 
 func (pg *PostgresChatStore) UpdateChat(ctx context.Context, chat *Chat) error {
-		query := `
+	query := `
 		UPDATE chats
-		SET is_group = $1, name = $2, created_by = $3
+		SET name = $1, updated_at = NOW()
 		RETURNING id
 	`
 
-	err := pg.db.QueryRowContext(ctx, query, chat.IsGroup, chat.Name, chat.CreatedBy).Scan(&chat.ChatID)
+	err := pg.db.QueryRowContext(ctx, query, chat.Name).Scan(&chat.ChatID)
 	return err
 }
 

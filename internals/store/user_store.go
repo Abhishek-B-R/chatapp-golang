@@ -90,11 +90,11 @@ func (pg *PostgresUserStore) CreateUser(ctx context.Context, user *User) error {
 func (pg *PostgresUserStore) GetUserByID(ctx context.Context, id int64) (*User, error) {
 	var user User;
 	query := `
-		SELECT username, email, avatar_url, bio, created_at FROM users
+		SELECT id, username, email, avatar_url, bio, created_at, last_seen_at, updated_at FROM users
 		WHERE id = $1
 	`
 
-	err := pg.db.QueryRowContext(ctx, query, id).Scan(&user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt)
+	err := pg.db.QueryRowContext(ctx, query, id).Scan(&user.ID, &user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt, &user.LastSeenAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -104,11 +104,11 @@ func (pg *PostgresUserStore) GetUserByID(ctx context.Context, id int64) (*User, 
 func (pg *PostgresUserStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var user User;
 	query := `
-		SELECT username, email, avatar_url, bio, created_at FROM users
+		SELECT id, username, email, avatar_url, bio, created_at, last_seen_at, updated_at FROM users
 		WHERE email = $1
 	`
 
-	err := pg.db.QueryRowContext(ctx, query, email).Scan(&user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt)
+	err := pg.db.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt, &user.LastSeenAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -244,12 +244,12 @@ func (pg *PostgresUserStore) GetUserToken(ctx context.Context, plainTextPassword
 
 func (pg *PostgresUserStore) GetCurrentUser(ctx context.Context, userID int64) (*User, error) {
 	query := `
-		SELECT username, email, avatar_url, bio, created_at FROM users
+		SELECT id, username, email, avatar_url, bio, created_at, last_seen_at, updated_at FROM users
 		WHERE id = $1
 	`
 
 	var user User
-	err := pg.db.QueryRowContext(ctx, query, userID).Scan(&user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt)
+	err := pg.db.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt, &user.LastSeenAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}

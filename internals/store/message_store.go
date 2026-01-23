@@ -75,7 +75,9 @@ func (pg *PostgresMessageStore) CreateMessage(ctx context.Context, msg *Message)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	q1 := `
 		INSERT INTO messages (chat_id, sender_id, type, content)

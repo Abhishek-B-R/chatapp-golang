@@ -12,11 +12,10 @@ func SetupRoutes(app *app.Application) *chi.Mux{
 	r.Post("/auth/login",app.TokenHandler.HandleCreateToken)
 	r.Post("/auth/register",app.UserHandler.HandleCreateUser)
 
-	r.Put("/auth/password-reset/{userID}",app.UserHandler.HandleUpdateUserPassword)
-
 	r.Group(func (r chi.Router){
 		r.Use(app.UserMiddleware.Authenticate)
 
+		r.Put("/auth/password-reset",app.UserHandler.HandleUpdateUserPassword)
 		r.Route("/users", func (r chi.Router){
 			r.Get("/me", app.UserHandler.HandleGetCurrentUser)
 			r.Put("/me", app.UserHandler.HandleUpdateUser)

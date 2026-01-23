@@ -22,12 +22,9 @@ func SetUser(r *http.Request, user *store.User) *http.Request {
 	return r.WithContext(ctx)
 }
 
-func GetUser(r *http.Request) *store.User {
+func GetUser(r *http.Request) (*store.User, bool) {
 	user, ok := r.Context().Value(UserContextKey).(*store.User)
-	if !ok {
-		panic("missing user in request")
-	}
-	return user
+	return user, ok && user != nil
 }
 
 func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler{
@@ -42,12 +39,11 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler{
 			return
 		}
 
-		parts := strings.Split(authHeader, " ")
+		parts := strings.Fields(authHeader)
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"invalid authorization header"})
 			return
 		}
-
 		token := parts[1]
 
 		user, err := um.UserStore.GetUserToken(r.Context(), token)
@@ -57,7 +53,7 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler{
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "user", user)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		r = SetUser(r, user)
+		next.ServeHTTP(w, r)
 	})
 }

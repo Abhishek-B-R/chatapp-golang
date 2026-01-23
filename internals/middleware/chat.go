@@ -20,18 +20,15 @@ func SetChatMembership(r *http.Request, chatMember *store.ChatMember) *http.Requ
 	return r.WithContext(ctx)
 }
 
-func GetChatMembership(r *http.Request) *store.ChatMember {
+func GetChatMembership(r *http.Request) (*store.ChatMember, bool) {
 	chatMember, ok := r.Context().Value(ChatContextKey).(*store.ChatMember)
-	if !ok {
-		panic("missing chat member in request")
-	}
-	return chatMember
+	return chatMember, ok && chatMember != nil
 }
 
 func (cm *ChatMiddleware) RequireMembership(next http.Handler) http.Handler{
 	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request){
-		user := r.Context().Value("user").(*store.User)
-		if user == nil {
+		user, ok := GetUser(r)
+		if !ok {
 			utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"signin to continue"})
 			return
 		}
