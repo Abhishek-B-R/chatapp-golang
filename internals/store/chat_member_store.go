@@ -53,6 +53,8 @@ type ChatMemberStore interface {
     GetUserRole(ctx context.Context, chatID, userID int64) (string, error)
     IsMember(ctx context.Context, chatID, userID int64) (bool, error)
     UpdateLastRead(ctx context.Context, chatID, userID, messageID int64) error
+	MuteChat(ctx context.Context, userID, chatID int64) error
+	UnMuteChat(ctx context.Context, userID, chatID int64) error
 }
 
 func (pg *PostgresChatMemberStore) AddMember(ctx context.Context, chatID, userID int64, role string) error {
@@ -189,4 +191,26 @@ func (pg *PostgresChatMemberStore) UpdateLastRead(ctx context.Context, chatID, u
 	}
 
 	return nil
+}
+
+func (pg *PostgresChatMemberStore) MuteChat(ctx context.Context, userID, chatID int64) error {
+	query := `
+		UPDATE chat_members
+		SET muted = true
+		WHERE user_id = $1 AND chat_id = $2
+	`
+
+	_, err := pg.db.Exec(query, userID, chatID)
+	return err
+}
+
+func (pg *PostgresChatMemberStore) UnMuteChat(ctx context.Context, userID, chatID int64) error {
+	query := `
+		UPDATE chat_members
+		SET muted = false
+		WHERE user_id = $1 AND chat_id = $2
+	`
+
+	_, err := pg.db.Exec(query, userID, chatID)
+	return err
 }

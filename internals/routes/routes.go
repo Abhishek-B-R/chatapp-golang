@@ -49,14 +49,15 @@ func SetupRoutes(app *app.Application) *chi.Mux{
 
 				// Messages in this chat
 				r.Route("/messages", func(r chi.Router) {
-					r.Get("/", app.MessageHandler.HandleGetChatMessages)
+					r.Get("/{offset}/{limit}", app.MessageHandler.HandleGetChatMessages)
 					r.Post("/", app.MessageHandler.HandleCreateMessage)
 					r.Get("/unread", app.MessageHandler.HandleGetUnreadCount) 
 				})
 
 				// Chat member actions (for current user)
-				// r.Put("/read", app.ChatMemberHandler.HandleMarkAsRead)
-				// r.Put("/mute", app.ChatMemberHandler.HandleMuteChat)
+				r.Put("/read", app.ChatMemberHandler.HandleUpdateLastRead)
+				r.Put("/mute", app.ChatMemberHandler.HandleMuteChat)
+				r.Put("/unmute", app.ChatMemberHandler.HandleUnMuteChat)
 			})
 		})
 

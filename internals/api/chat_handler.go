@@ -88,9 +88,17 @@ func (ch *ChatHandler) HandleUpdateChat(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		ch.logger.Printf("ERROR: decodingUpdateChat: %v\n", err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
+		return
 	}
 
-	err = ch.chatStore.UpdateChat(r.Context(), &chat)
+	chatID, err := utils.ReadParam(r, "chatID")
+	if err != nil {
+		ch.logger.Printf("ERROR: no chatID field: %v",err)
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"no chatid field sent"})
+		return
+	}
+
+	err = ch.chatStore.UpdateChat(r.Context(), &chat, chatID)
 	if err != nil {
 		ch.logger.Printf("ERROR: updateChat: %v\n", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to update chat"})

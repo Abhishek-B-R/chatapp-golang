@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Abhishek-B-R/chat-app-golang/internals/middleware"
 	"github.com/Abhishek-B-R/chat-app-golang/internals/store"
 	"github.com/Abhishek-B-R/chat-app-golang/internals/utils"
 )
@@ -24,11 +25,21 @@ func NewMessageHandler(store store.MessageStore, logger *log.Logger) *MessageHan
 func (mh *MessageHandler) HandleCreateMessage(w http.ResponseWriter, r *http.Request) {
 	var msg store.Message
 	err := json.NewDecoder(r.Body).Decode(&msg)
-	if err != nil {
-		mh.logger.Printf("ERROR: decodingCreateMessage: %v\n", err)
+	chatID, err2 := utils.ReadParam(r, "chatID")
+	if err != nil || err2 != nil {
+		mh.logger.Printf("ERROR: decodingCreateMessage: %v %v\n", err, err2)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
 		return
 	}
+
+	authenticatedUser, ok := middleware.GetUser(r)
+	if !ok {
+		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"authentication required"})
+		return
+	}
+
+	msg.ChatID = chatID
+	msg.SenderID = &authenticatedUser.ID
 
 	err = mh.store.CreateMessage(r.Context(), &msg)
 	if err != nil {
@@ -37,7 +48,7 @@ func (mh *MessageHandler) HandleCreateMessage(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, utils.Envelope{})
+	utils.WriteJSON(w, http.StatusCreated, utils.Envelope{"msg":"created message"})
 }
 
 func (mh *MessageHandler) HandleGetMessage(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +75,7 @@ func (mh *MessageHandler) HandleGetChatMessages(w http.ResponseWriter, r *http.R
 	offset, err3 := utils.ReadParam(r, "offset")
 
 	if err != nil || err2 != nil || err3 != nil {
-		mh.logger.Printf("ERROR: decodingGetChatMessages: %v\n", err)
+		mh.logger.Printf("ERROR: decodingGetChatMessages: %v %v\n", err, err2)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
 		return
 	}
@@ -118,14 +129,19 @@ func (mh *MessageHandler) HandleDeleteMessage(w http.ResponseWriter, r *http.Req
 
 func (mh *MessageHandler) HandleGetUnreadCount(w http.ResponseWriter, r *http.Request){
 	chatID, err := utils.ReadParam(r, "chatID")
-	userID, err2 := utils.ReadParam(r, "userID")
-	if err != nil || err2 != nil {
+	if err != nil {
 		mh.logger.Printf("ERROR: decodingGetUnreadCount: %v\n",err)
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
 		return
 	}
 
-	count, err := mh.store.GetUnreadCount(r.Context(), chatID, userID)
+	authenticatedUser, ok := middleware.GetUser(r)
+	if !ok {
+		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"authentication required"})
+		return
+	}
+
+	count, err := mh.store.GetUnreadCount(r.Context(), chatID, authenticatedUser.ID)
 	if err != nil {
 		mh.logger.Printf("ERROR: getUnreadCount: %v\n",err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to retrieve unread count"})

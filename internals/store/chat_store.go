@@ -28,7 +28,7 @@ type ChatStore interface {
 	CreateChat(ctx context.Context, chat *Chat, userID int64) (*Chat, error)
 	GetUserChats(ctx context.Context, userID int64) (*[]Chat, error)
 	GetChatByID(ctx context.Context, chatID int64) (*Chat, error)
-	UpdateChat(ctx context.Context, chat *Chat) error
+	UpdateChat(ctx context.Context, chat *Chat, chatID int64) error
 	DeleteChat(ctx context.Context, chatID int64) error
 }
 
@@ -65,14 +65,15 @@ func (pg *PostgresChatStore) CreateChat(ctx context.Context, chat *Chat, userID 
 	return chat, nil
 }
 
-func (pg *PostgresChatStore) UpdateChat(ctx context.Context, chat *Chat) error {
+func (pg *PostgresChatStore) UpdateChat(ctx context.Context, chat *Chat, chatID int64) error {
 	query := `
 		UPDATE chats
 		SET name = $1, updated_at = NOW()
+		WHERE id = $2
 		RETURNING id
 	`
 
-	err := pg.db.QueryRowContext(ctx, query, chat.Name).Scan(&chat.ChatID)
+	err := pg.db.QueryRowContext(ctx, query, chat.Name, chatID).Scan(&chat.ChatID)
 	return err
 }
 

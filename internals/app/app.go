@@ -48,7 +48,7 @@ func NewApplication() (*Application, error){
 
 	chatHandler := api.NewChatHandler(chatStore, logger)
 	messageHandler := api.NewMessageHandler(messageStore, logger)
-	chatMemberHandler := api.NewChatMemberHandler(chatMemberStore, logger)
+	chatMemberHandler := api.NewChatMemberHandler(chatMemberStore, messageStore, logger)
 	userHandler := api.NewUserHandler(userStore, logger)
 	tokenHandler := api.NewTokenHandler(tokenStore, userStore, logger)
 
