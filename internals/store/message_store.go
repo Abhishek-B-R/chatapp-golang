@@ -272,7 +272,7 @@ func (pg *PostgresMessageStore) DeleteMessage(ctx context.Context, msgID int64) 
 	query := `
 		UPDATE messages
 		SET deleted_at = NOW()
-		WHERE id = $2
+		WHERE id = $1
 	` // not actually deleted, just marked as deleted
 
 	_, err := pg.db.ExecContext(ctx, query, msgID)

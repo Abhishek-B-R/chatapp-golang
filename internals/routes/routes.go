@@ -69,34 +69,6 @@ func SetupRoutes(app *app.Application) *chi.Mux{
 			r.Put("/", app.MessageHandler.HandleUpdateMessage)
 			r.Delete("/", app.MessageHandler.HandleDeleteMessage)
 		})
-
-
-
-
-		r.Post("/chat",app.ChatHandler.HandleCreateChat)
-		r.Get("/chat/{chatID}",app.ChatHandler.HandleGetChatByID)
-		r.Put("/chat",app.ChatHandler.HandleUpdateChat)
-		r.Delete("/chat/{chatID}",app.ChatHandler.HandleDeleteChat)
-		r.Get("/user/{userID}/chats",app.ChatHandler.HandleGetUserChats)
-		
-		r.Get("/user/{userID}", app.UserHandler.HandleGetUserByID)
-		r.Get("/user/email/{email}", app.UserHandler.HandlerGetUserByEmail)
-		r.Get("/user/username/{username}", app.UserHandler.HandleGetUserByUsername)
-		r.Put("/user/update_last_seen/{userID}", app.UserHandler.HandleUpdateLastSeen)
-		r.Put("/user",app.UserHandler.HandleUpdateUser)
-		
-		r.Post("/chat/add", app.ChatMemberHandler.HandleAddMember)
-		r.Delete("/chat/delete/{chatID}/{userID}", app.ChatMemberHandler.HandleRemoveMember)
-		r.Get("/chat/members/{chatID}", app.ChatMemberHandler.HandleGetChatMembers)
-		r.Get("/chat/member/role/{chatID}/{userID}",app.ChatMemberHandler.HandleGetUserRole)
-		r.Get("/chat/member/check/{chatID}/{userID}",app.ChatMemberHandler.HandleIsMember)
-		
-		r.Post("/message", app.MessageHandler.HandleCreateMessage)
-		r.Get("/message/{msgID}", app.MessageHandler.HandleGetMessage)
-		r.Get("/messages/{chatID}/{limit}/{offset}", app.MessageHandler.HandleGetChatMessages)
-		r.Put("/message/update", app.MessageHandler.HandleUpdateMessage)
-		r.Delete("/message/{msgID}", app.MessageHandler.HandleDeleteMessage)
-		r.Get("/messages/unread/{chatID}/{userID}",app.MessageHandler.HandleGetUnreadCount)
 	})
 	return r
 }
