@@ -75,10 +75,10 @@ func (uh *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if req.Bio != "" {
-		user.Bio = req.Bio
+		user.Bio = &req.Bio
 	}
 	if req.AvatarURL != "" {
-		user.AvatarURL = req.AvatarURL
+		user.AvatarURL = &req.AvatarURL
 	}
 
 	err = user.PasswordHash.Set(req.Password)
@@ -217,8 +217,8 @@ func (uh *UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) 
 		ID:        authenticatedUser.ID,
 		Email:     updateReq.Email,
 		Username:  updateReq.Username, 
-		Bio:       updateReq.Bio,      
-		AvatarURL: updateReq.AvatarURL,
+		Bio:       &updateReq.Bio,      
+		AvatarURL: &updateReq.AvatarURL,
 	}
 
 	err = uh.userStore.UpdateUser(r.Context(), updatedUser)

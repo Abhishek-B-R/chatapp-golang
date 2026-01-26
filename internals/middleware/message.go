@@ -31,14 +31,14 @@ func GetMessageMembership(r *http.Request) *store.Message {
 
 func (mm *MessageMiddleware) RequireAccess(next http.Handler) http.Handler {
 	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request){
-		user := r.Context().Value("user").(*store.User)
+		user, ok := GetUser(r)
 		
-		if user == nil {
+		if !ok {
 			utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error":"signin to continue"})
 			return
 		}
 
-		messageID, err := utils.ReadParam(r, "messageID")
+		messageID, err := utils.ReadParam(r, "msgID")
 		if err != nil {
 			utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "invalid message ID"})
 			return

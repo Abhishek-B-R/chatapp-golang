@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/Abhishek-B-R/chat-app-golang/internals/middleware"
 	"github.com/Abhishek-B-R/chat-app-golang/internals/store"
@@ -90,24 +91,55 @@ func (mh *MessageHandler) HandleGetChatMessages(w http.ResponseWriter, r *http.R
 	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"messages":messages})
 }
 
-func (mh *MessageHandler) HandleUpdateMessage(w http.ResponseWriter, r *http.Request){
-	var msg store.Message
-	err := json.NewDecoder(r.Body).Decode(&msg)
+func (mh *MessageHandler) HandleUpdateMessage(w http.ResponseWriter, r *http.Request) {
+	msgID, err := utils.ReadParam(r, "msgID")
 	if err != nil {
-		mh.logger.Printf("ERROR: decodingUpdateMessages: %v\n",err)
-		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error":"invalid request sent"})
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "invalid msgID"})
 		return
 	}
 
-	err = mh.store.UpdateMessage(r.Context(), &msg)
+	var req struct {
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		mh.logger.Printf("ERROR: decodingUpdateMessage: %v\n", err)
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "invalid request body"})
+		return
+	}
+
+	req.Content = strings.TrimSpace(req.Content)
+	if req.Content == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "content cannot be empty"})
+		return
+	}
+
+	user, ok := middleware.GetUser(r)
+	if !ok {
+		utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error": "authentication required"})
+		return
+	}
+
+	originalMsg, err := mh.store.GetMessage(r.Context(), msgID)
 	if err != nil {
+		utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error": "message not found"})
+		return
+	}
+
+	if originalMsg.SenderID == nil || user.ID != *originalMsg.SenderID {
+		utils.WriteJSON(w, http.StatusForbidden, utils.Envelope{"error": "not allowed to update this message"})
+		return
+	}
+	originalMsg.Content = &req.Content
+
+	if err := mh.store.UpdateMessage(r.Context(), originalMsg); err != nil {
 		mh.logger.Printf("ERROR: updateMessage: %v\n", err)
-		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error":"failed to update message"})
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "failed to update message"})
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, utils.Envelope{})
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"message": originalMsg})
 }
+
 
 func (mh *MessageHandler) HandleDeleteMessage(w http.ResponseWriter, r *http.Request){
 	id, err := utils.ReadParam(r, "msgID")

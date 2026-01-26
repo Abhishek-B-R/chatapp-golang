@@ -47,7 +47,7 @@ func SetupRoutes(app *app.Application) *chi.Mux{
 					r.Put("/update", app.ChatMemberHandler.HandleUpdateLastRead)
 				})
 
-				// Messages in this chat
+				// Messages in this chats
 				r.Route("/messages", func(r chi.Router) {
 					r.Get("/{offset}/{limit}", app.MessageHandler.HandleGetChatMessages)
 					r.Post("/", app.MessageHandler.HandleCreateMessage)
@@ -62,7 +62,7 @@ func SetupRoutes(app *app.Application) *chi.Mux{
 		})
 
 		// MESSAGE ROUTES (Individual message operations)
-		r.Route("/messages/{messageID}", func(r chi.Router) {
+		r.Route("/messages/{msgID}", func(r chi.Router) {
 			r.Use(app.MessageMiddleware.RequireAccess)
 
 			r.Get("/", app.MessageHandler.HandleGetMessage)

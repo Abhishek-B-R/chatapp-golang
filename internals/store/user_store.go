@@ -44,11 +44,11 @@ type User struct {
 	Username string `json:"username"`
 	Email string `json:"email"`
 	PasswordHash password `json:"-"`
-	AvatarURL string `json:"avatar_url"`
-	Bio string `json:"bio"`
-	LastSeenAt time.Time `json:"last_seen_at"`
+	AvatarURL *string `json:"avatar_url"`
+	Bio *string `json:"bio"`
+	LastSeenAt *time.Time `json:"last_seen_at"`
 	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
 }
 
 type PostgresUserStore struct {
@@ -118,8 +118,9 @@ func (pg *PostgresUserStore) GetUserByEmail(ctx context.Context, email string) (
 func (pg *PostgresUserStore) GetUserByUsername(ctx context.Context, username string) (*User, error) {
 	var user User;
 	query := `
-		SELECT id, username, email, password_hash, avatar_url, bio, created_at FROM users
-		WHERE username = $1
+		SELECT id, username, email, password_hash, avatar_url, bio, created_at
+		FROM users
+		WHERE LOWER(username) = LOWER($1);
 	`
 
 	err := pg.db.QueryRowContext(ctx, query, username).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash.hash, &user.AvatarURL, &user.Bio, &user.CreatedAt)
@@ -244,12 +245,21 @@ func (pg *PostgresUserStore) GetUserToken(ctx context.Context, plainTextPassword
 
 func (pg *PostgresUserStore) GetCurrentUser(ctx context.Context, userID int64) (*User, error) {
 	query := `
-		SELECT id, username, email, avatar_url, bio, created_at, last_seen_at, updated_at FROM users
+		SELECT id, username, email, avatar_url, bio, last_seen_at, created_at, updated_at FROM users
 		WHERE id = $1
 	`
 
 	var user User
-	err := pg.db.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email, &user.AvatarURL, &user.Bio, &user.CreatedAt, &user.LastSeenAt, &user.UpdatedAt)
+	var bio sql.NullString
+	var avatar sql.NullString
+	var last_seen_at sql.NullTime
+	var updated_at sql.NullTime
+	err := pg.db.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email, &avatar, &bio, &last_seen_at, &user.CreatedAt, &updated_at)
+	
+	user.AvatarURL = &avatar.String
+	user.Bio = &bio.String
+	user.LastSeenAt = &last_seen_at.Time
+	user.UpdatedAt = &updated_at.Time
 	if err != nil {
 		return nil, err
 	}
